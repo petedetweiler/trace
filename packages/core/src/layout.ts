@@ -15,12 +15,25 @@ export interface LayoutOptions {
  * Default layout values (used when no theme provided)
  */
 const DEFAULTS = {
-  nodeWidth: 180,
+  nodeMinWidth: 120,
+  nodeMaxWidth: 280,
   nodeHeight: 60,
   decisionNodeHeight: 80,
   nodeSpacingX: 60,
   nodeSpacingY: 80,
   canvasPadding: 40,
+  nodePadding: 16,
+  fontSizeLabel: 14,
+}
+
+/**
+ * Estimate text width based on character count and font size
+ * Uses approximate character width ratio for sans-serif fonts
+ */
+function estimateTextWidth(text: string, fontSize: number): number {
+  // Average character width is roughly 0.55 * fontSize for sans-serif
+  const avgCharWidth = fontSize * 0.55
+  return text.length * avgCharWidth
 }
 
 /**
@@ -203,12 +216,15 @@ export function computeLayout(doc: TraceDocument, options: LayoutOptions = {}): 
   const { theme } = options
 
   // Get layout values from theme or use defaults
-  const nodeWidth = theme?.shapes.nodeMinWidth ?? DEFAULTS.nodeWidth
-  const nodeHeight = DEFAULTS.nodeHeight // Could be computed from theme.shapes.nodePadding
+  const nodeMinWidth = theme?.shapes.nodeMinWidth ?? DEFAULTS.nodeMinWidth
+  const nodeMaxWidth = theme?.shapes.nodeMaxWidth ?? DEFAULTS.nodeMaxWidth
+  const nodeHeight = DEFAULTS.nodeHeight
   const decisionNodeHeight = DEFAULTS.decisionNodeHeight
   const nodeSpacingX = theme?.layout.nodeSpacingX ?? DEFAULTS.nodeSpacingX
   const nodeSpacingY = theme?.layout.nodeSpacingY ?? DEFAULTS.nodeSpacingY
   const canvasPadding = theme?.layout.canvasPadding ?? DEFAULTS.canvasPadding
+  const nodePadding = theme?.shapes.nodePadding ?? DEFAULTS.nodePadding
+  const fontSize = theme?.typography.fontSizeLabel ?? DEFAULTS.fontSizeLabel
 
   const g = new dagre.graphlib.Graph()
 
@@ -224,12 +240,19 @@ export function computeLayout(doc: TraceDocument, options: LayoutOptions = {}): 
 
   g.setDefaultEdgeLabel(() => ({}))
 
-  // Add nodes
+  // Add nodes with dynamic widths based on label length
   for (const node of doc.nodes) {
     const height = node.type === 'decision' ? decisionNodeHeight : nodeHeight
+
+    // Calculate width based on text content plus padding
+    const textWidth = estimateTextWidth(node.label, fontSize)
+    const horizontalPadding = nodePadding * 2.5 // Extra horizontal padding for breathing room
+    const calculatedWidth = textWidth + horizontalPadding
+    const width = Math.max(nodeMinWidth, Math.min(nodeMaxWidth, calculatedWidth))
+
     g.setNode(node.id, {
       label: node.label,
-      width: nodeWidth,
+      width,
       height,
     })
   }

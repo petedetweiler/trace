@@ -15,26 +15,26 @@ export const corporateTheme: Theme = {
     error: '#DC2626', // Professional red
   },
 
-  // Light mode - Clean white and gray
+  // Light mode - Subtle filled nodes with gray-blue tint
   light: {
-    background: '#F9FAFB', // Very light gray
-    nodeBackground: '#FFFFFF',
-    nodeBorder: '#D1D5DB', // Gray-300
+    background: '#FAFBFC', // Clean off-white
+    nodeBackground: '#F0F4F8', // Light gray-blue fill (not pure white)
+    nodeBorder: '#CBD5E1', // Slate border
     text: '#111827', // Gray-900
-    textMuted: '#6B7280', // Gray-500
-    connectorStroke: '#9CA3AF', // Gray-400
-    gridColor: '#E5E7EB', // Gray-200
+    textMuted: '#64748B', // Slate-500
+    connectorStroke: '#94A3B8', // Slate-400
+    gridColor: '#E2E8F0', // Slate-200
   },
 
-  // Dark mode - Slate grays
+  // Dark mode - Slate grays with filled nodes
   dark: {
-    background: '#111827', // Gray-900
-    nodeBackground: '#1F2937', // Gray-800
-    nodeBorder: '#374151', // Gray-700
-    text: '#F9FAFB', // Gray-50
-    textMuted: '#9CA3AF', // Gray-400
-    connectorStroke: '#4B5563', // Gray-600
-    gridColor: '#1F2937', // Gray-800
+    background: '#0F172A', // Slate-900
+    nodeBackground: '#1E293B', // Slate-800 (filled, not just border)
+    nodeBorder: '#334155', // Slate-700
+    text: '#F8FAFC', // Slate-50
+    textMuted: '#94A3B8', // Slate-400
+    connectorStroke: '#475569', // Slate-600
+    gridColor: '#1E293B', // Slate-800
   },
 
   typography: {
@@ -46,11 +46,12 @@ export const corporateTheme: Theme = {
   },
 
   shapes: {
-    nodeCornerRadius: 8, // Moderate rounding
+    nodeCornerRadius: 2, // Nearly squared off for professional look
     nodePadding: 16,
-    nodeShadow: '0 1px 3px rgba(0, 0, 0, 0.1)', // Subtle shadow
+    nodeShadow: '0 1px 2px rgba(0, 0, 0, 0.05)', // Very subtle shadow
     nodeMinWidth: 140,
     nodeMaxWidth: 300,
+    nodeBorderWidth: 1.5, // Slightly thicker border
   },
 
   connectors: {

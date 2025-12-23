@@ -129,6 +129,20 @@ function getPathMidpoint(points: Point[]): Point {
 }
 
 /**
+ * Simple hash function for consistent color assignment
+ * Returns a positive integer hash for any string
+ */
+function hashCode(str: string): number {
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i)
+    hash = ((hash << 5) - hash) + char
+    hash = hash & hash // Convert to 32bit integer
+  }
+  return Math.abs(hash)
+}
+
+/**
  * Get shape path for a node based on its type
  */
 function getNodeShape(node: PositionedNode, cornerRadius: number = 12): string {
@@ -214,6 +228,8 @@ export function render(layout: LayoutResult, options: RenderOptions = {}): strin
   const shapes = {
     nodeCornerRadius: theme?.shapes.nodeCornerRadius ?? DEFAULTS.shapes.nodeCornerRadius,
     nodeShadow: theme?.shapes.nodeShadow ?? DEFAULTS.shapes.nodeShadow,
+    nodeBorderWidth: theme?.shapes.nodeBorderWidth ?? 1,
+    nodeColors: theme?.shapes.nodeColors,
   }
 
   const connectors = {
@@ -293,13 +309,37 @@ export function render(layout: LayoutResult, options: RenderOptions = {}): strin
       const shapePath = getNodeShape(node, shapes.nodeCornerRadius)
       const isHighEmphasis = node.emphasis === 'high'
       const isEnd = node.type === 'end'
+      const hasNodeColors = shapes.nodeColors && shapes.nodeColors.length > 0
 
-      // Use accent color for end nodes, normal background for others
-      const fill = isEnd ? colors.accent : colors.nodeBackground
+      // Determine fill color:
+      // - End nodes always use accent color
+      // - If theme has nodeColors array, cycle through them based on node ID hash
+      // - Otherwise use nodeBackground
+      let fill: string
+      if (isEnd) {
+        fill = colors.accent
+      } else if (hasNodeColors) {
+        const colorIndex = hashCode(node.id) % shapes.nodeColors!.length
+        fill = shapes.nodeColors![colorIndex]
+      } else {
+        fill = colors.nodeBackground
+      }
+
       // Use accent for emphasis, normal border for others
       const stroke = isHighEmphasis ? colors.accentMuted : colors.nodeBorder
-      // Invert text color on accent background
-      const textColor = isEnd ? colors.nodeBackground : colors.text
+
+      // Determine text color:
+      // - End nodes: inverted (white on accent)
+      // - Nodes with custom colors (sticky notes): always dark for readability
+      // - Otherwise: theme text color
+      let textColor: string
+      if (isEnd) {
+        textColor = colors.nodeBackground
+      } else if (hasNodeColors) {
+        textColor = '#1F2937' // Dark gray for sticky notes
+      } else {
+        textColor = colors.text
+      }
 
       // Sanitize ID and escape label for safe SVG output
       const nodeId = sanitizeId(node.id)
@@ -316,7 +356,7 @@ export function render(layout: LayoutResult, options: RenderOptions = {}): strin
           d="${shapePath}"
           fill="${fill}"
           stroke="${stroke}"
-          stroke-width="1"
+          stroke-width="${shapes.nodeBorderWidth}"
           ${filterAttr}
         />
         <text

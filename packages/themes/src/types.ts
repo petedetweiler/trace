@@ -79,6 +79,10 @@ export interface ThemeShapes {
   nodeMinWidth: number
   /** Maximum node width in pixels */
   nodeMaxWidth: number
+  /** Node border width in pixels (default: 1) */
+  nodeBorderWidth?: number
+  /** Optional array of node fill colors (cycled for variety, e.g., sticky note colors) */
+  nodeColors?: string[]
 }
 
 /**
