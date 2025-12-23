@@ -46,11 +46,20 @@ export const vibrantTheme: Theme = {
   },
 
   shapes: {
-    nodeCornerRadius: 16, // More rounded for playful feel
+    nodeCornerRadius: 14, // Rounded for playful feel
     nodePadding: 18,
-    nodeShadow: '0 4px 14px rgba(139, 92, 246, 0.15)', // Purple-tinted shadow
+    nodeShadow: '0 4px 12px rgba(139, 92, 246, 0.12)', // Purple-tinted shadow
     nodeMinWidth: 130,
     nodeMaxWidth: 280,
+    // FigJam-style colorful sticky note colors
+    // Same colors for both light and dark modes - sticky notes stay bright
+    nodeColors: [
+      '#FEF3C7', // Amber/yellow
+      '#FBCFE8', // Pink
+      '#BFDBFE', // Blue
+      '#A7F3D0', // Mint green
+      '#DDD6FE', // Lavender
+    ],
   },
 
   connectors: {

@@ -15,15 +15,15 @@ export const blueprintTheme: Theme = {
     error: '#F87171', // Coral red
   },
 
-  // Light mode - Classic blueprint on navy
+  // Light mode - Cool blue drafting paper aesthetic
   light: {
-    background: '#1E3A5F', // Navy blue
-    nodeBackground: '#254E78', // Slightly lighter navy
-    nodeBorder: '#60A5FA', // Bright blue borders
-    text: '#FFFFFF',
-    textMuted: '#94A3B8',
-    connectorStroke: '#60A5FA',
-    gridColor: '#2D5A8A',
+    background: '#E8F0F8', // Light blue-gray paper
+    nodeBackground: '#F5F9FC', // Very light blue node fill
+    nodeBorder: '#1E3A5F', // Dark navy borders
+    text: '#1E3A5F', // Dark navy text
+    textMuted: '#4A6D8C', // Medium navy
+    connectorStroke: '#2E5A8F', // Navy connectors
+    gridColor: '#C5D8E8', // Light blue grid
   },
 
   // Dark mode - Deeper, more contrast
