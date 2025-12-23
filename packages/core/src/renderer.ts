@@ -1,7 +1,54 @@
 // SVG renderer for Trace diagrams
 
-import type { LayoutResult, PositionedNode, PositionedEdge, Point } from './types'
+import type { LayoutResult, PositionedNode, PositionedEdge, Point, ResolvedTheme } from './types'
 import { escapeXml, escapeXmlAttr, sanitizeId } from './escape'
+
+/**
+ * Render options
+ */
+export interface RenderOptions {
+  /** Resolved theme for styling */
+  theme?: ResolvedTheme
+}
+
+/**
+ * Default style values (used when no theme provided)
+ */
+const DEFAULTS = {
+  colors: {
+    background: '#F8F8F8',
+    nodeBackground: '#FFFFFF',
+    nodeBorder: '#E0E0E0',
+    text: '#1A1A1A',
+    textMuted: '#6B6B6B',
+    connectorStroke: '#E0E0E0',
+    accent: '#3a7d69',
+    accentMuted: '#d4e8e2',
+  },
+  typography: {
+    fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+    fontSizeLabel: 14,
+    fontSizeDescription: 12,
+    fontWeightLabel: 600,
+    fontWeightDescription: 500,
+  },
+  shapes: {
+    nodeCornerRadius: 12,
+    nodeShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+  },
+  connectors: {
+    strokeWidth: 2,
+  },
+  background: {
+    showGrid: true,
+    gridStyle: 'dots' as const,
+    gridSpacing: 20,
+    gridColor: '#E0E0E0',
+  },
+  layout: {
+    canvasPadding: 40,
+  },
+}
 
 /**
  * Generate a path with rounded corners at bend points
@@ -84,13 +131,13 @@ function getPathMidpoint(points: Point[]): Point {
 /**
  * Get shape path for a node based on its type
  */
-function getNodeShape(node: PositionedNode): string {
+function getNodeShape(node: PositionedNode, cornerRadius: number = 12): string {
   const { x, y, width, height, type = 'process' } = node
   const left = x - width / 2
   const top = y - height / 2
   const right = x + width / 2
   const bottom = y + height / 2
-  const r = 12 // corner radius
+  const r = cornerRadius
 
   switch (type) {
     case 'start':
@@ -140,10 +187,47 @@ function getNodeShape(node: PositionedNode): string {
 /**
  * Render a TraceDocument layout to SVG string
  */
-export function render(layout: LayoutResult): string {
+export function render(layout: LayoutResult, options: RenderOptions = {}): string {
   const { nodes, edges, width, height } = layout
+  const { theme } = options
 
-  const padding = 40
+  // Extract theme values or use defaults
+  const colors = {
+    background: theme?.colors.background ?? DEFAULTS.colors.background,
+    nodeBackground: theme?.colors.nodeBackground ?? DEFAULTS.colors.nodeBackground,
+    nodeBorder: theme?.colors.nodeBorder ?? DEFAULTS.colors.nodeBorder,
+    text: theme?.colors.text ?? DEFAULTS.colors.text,
+    textMuted: theme?.colors.textMuted ?? DEFAULTS.colors.textMuted,
+    connectorStroke: theme?.colors.connectorStroke ?? DEFAULTS.colors.connectorStroke,
+    accent: theme?.colors.accent ?? DEFAULTS.colors.accent,
+    accentMuted: theme?.colors.accentMuted ?? DEFAULTS.colors.accentMuted,
+  }
+
+  const typography = {
+    fontFamily: theme?.typography.fontFamily ?? DEFAULTS.typography.fontFamily,
+    fontSizeLabel: theme?.typography.fontSizeLabel ?? DEFAULTS.typography.fontSizeLabel,
+    fontSizeDescription: theme?.typography.fontSizeDescription ?? DEFAULTS.typography.fontSizeDescription,
+    fontWeightLabel: theme?.typography.fontWeightLabel ?? DEFAULTS.typography.fontWeightLabel,
+    fontWeightDescription: theme?.typography.fontWeightDescription ?? DEFAULTS.typography.fontWeightDescription,
+  }
+
+  const shapes = {
+    nodeCornerRadius: theme?.shapes.nodeCornerRadius ?? DEFAULTS.shapes.nodeCornerRadius,
+    nodeShadow: theme?.shapes.nodeShadow ?? DEFAULTS.shapes.nodeShadow,
+  }
+
+  const connectors = {
+    strokeWidth: theme?.connectors.strokeWidth ?? DEFAULTS.connectors.strokeWidth,
+  }
+
+  const background = {
+    showGrid: theme?.background.showGrid ?? DEFAULTS.background.showGrid,
+    gridStyle: theme?.background.gridStyle ?? DEFAULTS.background.gridStyle,
+    gridSpacing: theme?.background.gridSpacing ?? DEFAULTS.background.gridSpacing,
+    gridColor: theme?.background.gridColor ?? DEFAULTS.background.gridColor,
+  }
+
+  const padding = theme?.layout.canvasPadding ?? DEFAULTS.layout.canvasPadding
   const viewBox = `0 0 ${width + padding * 2} ${height + padding * 2}`
 
   // Render edges
@@ -174,8 +258,8 @@ export function render(layout: LayoutResult): string {
           id="${edgeId}"
           d="${path}"
           fill="none"
-          stroke="#E0E0E0"
-          stroke-width="2"
+          stroke="${colors.connectorStroke}"
+          stroke-width="${connectors.strokeWidth}"
           stroke-dasharray="${strokeDasharray}"
           marker-end="url(#arrowhead)"
         />
@@ -185,7 +269,7 @@ export function render(layout: LayoutResult): string {
           y="${midpoint.y - 10}"
           width="32"
           height="20"
-          fill="#F8F8F8"
+          fill="${colors.background}"
           rx="4"
         />
         <text
@@ -194,10 +278,10 @@ export function render(layout: LayoutResult): string {
           y="${midpoint.y}"
           text-anchor="middle"
           dominant-baseline="middle"
-          fill="#666666"
-          font-family="Inter, system-ui, sans-serif"
-          font-size="12"
-          font-weight="500"
+          fill="${colors.textMuted}"
+          font-family="${escapeXmlAttr(typography.fontFamily)}"
+          font-size="${typography.fontSizeDescription}"
+          font-weight="${typography.fontWeightDescription}"
         >${escapeXml(edge.label)}</text>` : ''}
       </g>`
     })
@@ -206,18 +290,24 @@ export function render(layout: LayoutResult): string {
   // Render nodes
   const nodeElements = nodes
     .map((node) => {
-      const shapePath = getNodeShape(node)
+      const shapePath = getNodeShape(node, shapes.nodeCornerRadius)
       const isHighEmphasis = node.emphasis === 'high'
       const isEnd = node.type === 'end'
 
-      const fill = isEnd ? '#3a7d69' : '#FFFFFF'
-      const stroke = isHighEmphasis ? '#C9956B' : '#E0E0E0'
-      const textColor = isEnd ? '#FFFFFF' : '#1A1A1A'
+      // Use accent color for end nodes, normal background for others
+      const fill = isEnd ? colors.accent : colors.nodeBackground
+      // Use accent for emphasis, normal border for others
+      const stroke = isHighEmphasis ? colors.accentMuted : colors.nodeBorder
+      // Invert text color on accent background
+      const textColor = isEnd ? colors.nodeBackground : colors.text
 
       // Sanitize ID and escape label for safe SVG output
       const nodeId = sanitizeId(node.id)
       const nodeType = escapeXmlAttr(node.type ?? 'process')
       const nodeLabel = escapeXml(node.label)
+
+      // Only apply shadow filter if theme has shadows
+      const filterAttr = shapes.nodeShadow !== 'none' ? 'filter="url(#shadow)"' : ''
 
       return `
       <g class="trace-node" data-id="${escapeXmlAttr(node.id)}" data-type="${nodeType}">
@@ -227,7 +317,7 @@ export function render(layout: LayoutResult): string {
           fill="${fill}"
           stroke="${stroke}"
           stroke-width="1"
-          filter="url(#shadow)"
+          ${filterAttr}
         />
         <text
           x="${node.x}"
@@ -235,13 +325,28 @@ export function render(layout: LayoutResult): string {
           dy="0.35em"
           text-anchor="middle"
           fill="${textColor}"
-          font-family="Inter, system-ui, sans-serif"
-          font-size="14"
-          font-weight="600"
+          font-family="${escapeXmlAttr(typography.fontFamily)}"
+          font-size="${typography.fontSizeLabel}"
+          font-weight="${typography.fontWeightLabel}"
         >${nodeLabel}</text>
       </g>`
     })
     .join('\n')
+
+  // Generate grid pattern based on style
+  const gridPattern = background.showGrid
+    ? background.gridStyle === 'lines'
+      ? `<pattern id="gridPattern" width="${background.gridSpacing}" height="${background.gridSpacing}" patternUnits="userSpaceOnUse">
+          <path d="M ${background.gridSpacing} 0 L 0 0 0 ${background.gridSpacing}" fill="none" stroke="${background.gridColor}" stroke-width="0.5"/>
+        </pattern>`
+      : background.gridStyle === 'blueprint'
+        ? `<pattern id="gridPattern" width="${background.gridSpacing}" height="${background.gridSpacing}" patternUnits="userSpaceOnUse">
+          <path d="M ${background.gridSpacing} 0 L 0 0 0 ${background.gridSpacing}" fill="none" stroke="${background.gridColor}" stroke-width="1"/>
+        </pattern>`
+        : `<pattern id="gridPattern" width="${background.gridSpacing}" height="${background.gridSpacing}" patternUnits="userSpaceOnUse">
+          <circle cx="${background.gridSpacing / 2}" cy="${background.gridSpacing / 2}" r="1" fill="${background.gridColor}"/>
+        </pattern>`
+    : ''
 
   return `<svg
     xmlns="http://www.w3.org/2000/svg"
@@ -251,6 +356,29 @@ export function render(layout: LayoutResult): string {
     class="trace-diagram"
   >
     <defs>
+      <!-- CSS Variables for hover effects -->
+      <style>
+        .trace-diagram {
+          --trace-accent: ${colors.accent};
+          --trace-accent-muted: ${colors.accentMuted};
+          --trace-connector: ${colors.connectorStroke};
+          --trace-node-border: ${colors.nodeBorder};
+        }
+        .trace-node path {
+          transition: stroke 0.15s ease, stroke-width 0.15s ease;
+        }
+        .trace-node:hover path {
+          stroke: var(--trace-accent);
+          stroke-width: 2;
+        }
+        .trace-edge path:not(.trace-edge-hit) {
+          transition: stroke 0.15s ease;
+        }
+        .trace-edge:hover path:not(.trace-edge-hit) {
+          stroke: var(--trace-accent);
+        }
+      </style>
+
       <!-- Shadow filter -->
       <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
         <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.08"/>
@@ -274,16 +402,15 @@ export function render(layout: LayoutResult): string {
           stroke-linejoin="round"
         />
       </marker>
+
+      ${gridPattern}
     </defs>
 
     <!-- Background -->
-    <rect width="100%" height="100%" fill="#F8F8F8"/>
+    <rect width="100%" height="100%" fill="${colors.background}"/>
 
-    <!-- Dot grid -->
-    <pattern id="dotGrid" width="20" height="20" patternUnits="userSpaceOnUse">
-      <circle cx="10" cy="10" r="1" fill="#E0E0E0"/>
-    </pattern>
-    <rect width="100%" height="100%" fill="url(#dotGrid)"/>
+    ${background.showGrid ? `<!-- Grid pattern -->
+    <rect width="100%" height="100%" fill="url(#gridPattern)"/>` : ''}
 
     <!-- Content group with padding offset -->
     <g transform="translate(${padding}, ${padding})">
