@@ -162,6 +162,14 @@ export function render(layout: LayoutResult): string {
 
       return `
       <g class="trace-edge" data-from="${escapeXmlAttr(edge.from)}" data-to="${escapeXmlAttr(edge.to)}">
+        <!-- Invisible hit area for easier hover -->
+        <path
+          d="${path}"
+          fill="none"
+          stroke="transparent"
+          stroke-width="16"
+          class="trace-edge-hit"
+        />
         <path
           id="${edgeId}"
           d="${path}"
@@ -203,7 +211,7 @@ export function render(layout: LayoutResult): string {
       const isEnd = node.type === 'end'
 
       const fill = isEnd ? '#3a7d69' : '#FFFFFF'
-      const stroke = isHighEmphasis ? '#3a7d69' : '#E0E0E0'
+      const stroke = isHighEmphasis ? '#C9956B' : '#E0E0E0'
       const textColor = isEnd ? '#FFFFFF' : '#1A1A1A'
 
       // Sanitize ID and escape label for safe SVG output
@@ -260,7 +268,7 @@ export function render(layout: LayoutResult): string {
         <polyline
           points="0 0, 4 3, 0 6"
           fill="none"
-          stroke="#D0D0D0"
+          stroke="context-stroke"
           stroke-width="1"
           stroke-linecap="round"
           stroke-linejoin="round"
