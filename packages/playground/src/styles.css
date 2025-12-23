@@ -148,6 +148,154 @@ body {
   background: #F5F5F5;
 }
 
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.button:disabled:hover {
+  background: inherit;
+}
+
+/* Export split button */
+.export-button-container {
+  position: relative;
+}
+
+.export-button-split {
+  display: flex;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.export-button-split.disabled {
+  opacity: 0.5;
+}
+
+.export-button-primary {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  background: #FF6B35;
+  color: #FFFFFF;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.export-button-primary:hover:not(:disabled) {
+  background: #E55A2B;
+}
+
+.export-button-primary:disabled {
+  cursor: not-allowed;
+}
+
+.export-button-dropdown-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 10px;
+  background: #FF6B35;
+  color: #FFFFFF;
+  border: none;
+  border-left: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.export-button-dropdown-trigger:hover:not(:disabled) {
+  background: #E55A2B;
+}
+
+.export-button-dropdown-trigger:disabled {
+  cursor: not-allowed;
+}
+
+.export-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  min-width: 140px;
+  background: #FFFFFF;
+  border: 1px solid #E0E0E0;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  overflow: hidden;
+}
+
+.export-dropdown-item {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1A1A1A;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.export-dropdown-item:hover {
+  background: #F5F5F5;
+}
+
+.export-dropdown-item:not(:last-child) {
+  border-bottom: 1px solid #F0F0F0;
+}
+
+/* Generic dropdown */
+.dropdown-container {
+  position: relative;
+}
+
+.dropdown-trigger {
+  display: inline-flex;
+  align-items: center;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  min-width: 160px;
+  background: #FFFFFF;
+  border: 1px solid #E0E0E0;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  overflow: hidden;
+}
+
+.dropdown-item {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1A1A1A;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.dropdown-item:hover {
+  background: #F5F5F5;
+}
+
+.dropdown-item:not(:last-child) {
+  border-bottom: 1px solid #F0F0F0;
+}
+
 /* Error display */
 .error-banner {
   padding: 12px 16px;

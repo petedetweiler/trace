@@ -4,39 +4,81 @@ import type { LayoutResult, PositionedNode, PositionedEdge, Point } from './type
 import { escapeXml, escapeXmlAttr, sanitizeId } from './escape'
 
 /**
- * Generate a smooth bezier curve path from points
+ * Generate a path with rounded corners at bend points
+ * Uses straight lines with quadratic bezier curves at corners
  */
 function generateCurvePath(points: Point[]): string {
   if (points.length < 2) return ''
 
-  const [start, ...rest] = points
-
-  if (rest.length === 1) {
-    // Simple line
-    return `M ${start.x} ${start.y} L ${rest[0].x} ${rest[0].y}`
+  if (points.length === 2) {
+    return `M ${points[0].x} ${points[0].y} L ${points[1].x} ${points[1].y}`
   }
 
-  // Create smooth bezier curve
-  let path = `M ${start.x} ${start.y}`
+  const radius = 16 // Corner rounding radius
 
-  for (let i = 0; i < rest.length; i++) {
-    const curr = rest[i]
-    const prev = i === 0 ? start : rest[i - 1]
+  let path = `M ${points[0].x} ${points[0].y}`
 
-    // Use quadratic bezier for smoother curves
-    const midX = (prev.x + curr.x) / 2
-    const midY = (prev.y + curr.y) / 2
+  for (let i = 1; i < points.length - 1; i++) {
+    const prev = points[i - 1]
+    const curr = points[i]
+    const next = points[i + 1]
 
-    if (i === 0) {
-      path += ` Q ${prev.x} ${prev.y} ${midX} ${midY}`
-    } else if (i === rest.length - 1) {
-      path += ` Q ${midX} ${midY} ${curr.x} ${curr.y}`
-    } else {
-      path += ` T ${midX} ${midY}`
+    // Calculate vectors
+    const v1 = { x: curr.x - prev.x, y: curr.y - prev.y }
+    const v2 = { x: next.x - curr.x, y: next.y - curr.y }
+
+    // Normalize and get distances
+    const len1 = Math.sqrt(v1.x * v1.x + v1.y * v1.y)
+    const len2 = Math.sqrt(v2.x * v2.x + v2.y * v2.y)
+
+    if (len1 === 0 || len2 === 0) {
+      path += ` L ${curr.x} ${curr.y}`
+      continue
+    }
+
+    // Clamp radius to half the shortest segment
+    const maxRadius = Math.min(len1, len2) / 2
+    const r = Math.min(radius, maxRadius)
+
+    // Points where curve starts and ends
+    const startX = curr.x - (v1.x / len1) * r
+    const startY = curr.y - (v1.y / len1) * r
+    const endX = curr.x + (v2.x / len2) * r
+    const endY = curr.y + (v2.y / len2) * r
+
+    // Line to curve start, then quadratic bezier through corner
+    path += ` L ${startX} ${startY} Q ${curr.x} ${curr.y} ${endX} ${endY}`
+  }
+
+  // Final line to last point
+  const last = points[points.length - 1]
+  path += ` L ${last.x} ${last.y}`
+
+  return path
+}
+
+/**
+ * Calculate the midpoint along a path for label positioning
+ */
+function getPathMidpoint(points: Point[]): Point {
+  if (points.length === 0) return { x: 0, y: 0 }
+  if (points.length === 1) return points[0]
+  if (points.length === 2) {
+    return {
+      x: (points[0].x + points[1].x) / 2,
+      y: (points[0].y + points[1].y) / 2,
     }
   }
 
-  return path
+  // For multiple points, find the middle segment
+  const midIndex = Math.floor(points.length / 2)
+  const p1 = points[midIndex - 1]
+  const p2 = points[midIndex]
+
+  return {
+    x: (p1.x + p2.x) / 2,
+    y: (p1.y + p2.y) / 2,
+  }
 }
 
 /**
@@ -115,6 +157,9 @@ export function render(layout: LayoutResult): string {
       const toId = sanitizeId(edge.to)
       const edgeId = `edge-${fromId}-${toId}`
 
+      // Calculate label position at edge midpoint (always horizontal)
+      const midpoint = getPathMidpoint(edge.points)
+
       return `
       <g class="trace-edge" data-from="${escapeXmlAttr(edge.from)}" data-to="${escapeXmlAttr(edge.to)}">
         <path
@@ -126,7 +171,26 @@ export function render(layout: LayoutResult): string {
           stroke-dasharray="${strokeDasharray}"
           marker-end="url(#arrowhead)"
         />
-        ${edge.label ? `<text class="trace-edge-label" dy="-8"><textPath href="#${edgeId}" startOffset="50%" text-anchor="middle">${escapeXml(edge.label)}</textPath></text>` : ''}
+        ${edge.label ? `
+        <rect
+          x="${midpoint.x - 16}"
+          y="${midpoint.y - 10}"
+          width="32"
+          height="20"
+          fill="#F8F8F8"
+          rx="4"
+        />
+        <text
+          class="trace-edge-label"
+          x="${midpoint.x}"
+          y="${midpoint.y}"
+          text-anchor="middle"
+          dominant-baseline="middle"
+          fill="#666666"
+          font-family="Inter, system-ui, sans-serif"
+          font-size="12"
+          font-weight="500"
+        >${escapeXml(edge.label)}</text>` : ''}
       </g>`
     })
     .join('\n')
@@ -154,14 +218,14 @@ export function render(layout: LayoutResult): string {
           d="${shapePath}"
           fill="${fill}"
           stroke="${stroke}"
-          stroke-width="2"
+          stroke-width="1"
           filter="url(#shadow)"
         />
         <text
           x="${node.x}"
           y="${node.y}"
+          dy="0.35em"
           text-anchor="middle"
-          dominant-baseline="middle"
           fill="${textColor}"
           font-family="Inter, system-ui, sans-serif"
           font-size="14"
@@ -184,16 +248,23 @@ export function render(layout: LayoutResult): string {
         <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.08"/>
       </filter>
 
-      <!-- Arrowhead marker -->
+      <!-- Chevron arrowhead marker -->
       <marker
         id="arrowhead"
-        markerWidth="10"
-        markerHeight="7"
-        refX="9"
-        refY="3.5"
+        markerWidth="6"
+        markerHeight="6"
+        refX="5"
+        refY="3"
         orient="auto"
       >
-        <polygon points="0 0, 10 3.5, 0 7" fill="#E0E0E0"/>
+        <polyline
+          points="0 0, 4 3, 0 6"
+          fill="none"
+          stroke="#D0D0D0"
+          stroke-width="1"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
       </marker>
     </defs>
 

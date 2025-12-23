@@ -2,57 +2,19 @@ import { useState, useMemo } from 'react'
 import { parse, validate, computeLayout, render } from '@traceflow/core'
 import Editor from './components/Editor'
 import Preview from './components/Preview'
-
-const DEFAULT_YAML = `title: User Authentication Flow
-description: JWT-based auth with error handling
-
-nodes:
-  - id: start
-    type: start
-    label: User visits site
-
-  - id: auth
-    type: process
-    label: Authenticate
-    description: Validate JWT against auth service
-    emphasis: high
-
-  - id: valid
-    type: decision
-    label: Valid session?
-
-  - id: dashboard
-    type: end
-    label: Dashboard
-    status: success
-
-  - id: login
-    type: process
-    label: Login page
-
-edges:
-  - from: start
-    to: auth
-
-  - from: auth
-    to: valid
-
-  - from: valid
-    to: dashboard
-    label: "yes"
-    description: JWT validated successfully
-
-  - from: valid
-    to: login
-    label: "no"
-    style: dashed
-
-  - from: login
-    to: auth
-`
+import { ExportButton, type ExportFormat } from './components/ExportButton'
+import { ExamplesDropdown } from './components/ExamplesDropdown'
+import { EXAMPLES } from './data/examples'
+import {
+  downloadFile,
+  downloadBlob,
+  svgToPng,
+  getFilenameFromTitle,
+  copyToClipboard,
+} from './utils/export'
 
 function App() {
-  const [yaml, setYaml] = useState(DEFAULT_YAML)
+  const [yaml, setYaml] = useState(EXAMPLES[0].yaml)
 
   const { svg, error } = useMemo(() => {
     try {
@@ -78,6 +40,23 @@ function App() {
     }
   }, [yaml])
 
+  const handleExport = async (format: ExportFormat) => {
+    if (!svg) return
+
+    if (format === 'svg') {
+      const filename = getFilenameFromTitle(yaml, 'svg')
+      downloadFile(svg, filename, 'image/svg+xml')
+    } else if (format === 'png') {
+      const filename = getFilenameFromTitle(yaml, 'png')
+      const blob = await svgToPng(svg, 2)
+      downloadBlob(blob, filename)
+    }
+  }
+
+  const handleCopyYaml = async () => {
+    await copyToClipboard(yaml)
+  }
+
   return (
     <div className="app">
       <header className="header">
@@ -86,8 +65,11 @@ function App() {
           <span>Traceflow</span>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button className="button button-secondary">Examples</button>
-          <button className="button button-primary">Export SVG</button>
+          <ExamplesDropdown examples={EXAMPLES} onSelect={setYaml} />
+          <button className="button button-secondary" onClick={handleCopyYaml}>
+            Copy YAML
+          </button>
+          <ExportButton disabled={!svg} onExport={handleExport} />
         </div>
       </header>
 
