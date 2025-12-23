@@ -31,9 +31,13 @@ export function downloadBlob(blob: Blob, filename: string): void {
  */
 export function svgToPng(svgString: string, scale: number = 2): Promise<Blob> {
   return new Promise((resolve, reject) => {
+    // Remove <style> elements using regex - they can cause image loading failures
+    // and hover effects don't apply to static images anyway
+    const cleanedSvg = svgString.replace(/<style[\s\S]*?<\/style>/gi, '')
+
     // Parse SVG to get dimensions
     const parser = new DOMParser()
-    const svgDoc = parser.parseFromString(svgString, 'image/svg+xml')
+    const svgDoc = parser.parseFromString(cleanedSvg, 'image/svg+xml')
     const svgElement = svgDoc.documentElement
 
     // Get dimensions from SVG
@@ -54,9 +58,9 @@ export function svgToPng(svgString: string, scale: number = 2): Promise<Blob> {
     // Scale context for higher resolution
     ctx.scale(scale, scale)
 
-    // Create image from SVG
+    // Create image from cleaned SVG
     const img = new Image()
-    const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' })
+    const svgBlob = new Blob([cleanedSvg], { type: 'image/svg+xml;charset=utf-8' })
     const url = URL.createObjectURL(svgBlob)
 
     img.onload = () => {

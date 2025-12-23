@@ -1,14 +1,27 @@
 // Dagre-based layout engine
 
 import dagre from 'dagre'
-import type { TraceDocument, LayoutResult, PositionedNode, PositionedEdge, Point, TraceEdge } from './types'
+import type { TraceDocument, LayoutResult, PositionedNode, PositionedEdge, Point, TraceEdge, ResolvedTheme } from './types'
 
 /**
- * Default node dimensions
+ * Layout options
  */
-const DEFAULT_NODE_WIDTH = 180
-const DEFAULT_NODE_HEIGHT = 60
-const DECISION_NODE_HEIGHT = 80
+export interface LayoutOptions {
+  /** Resolved theme for layout dimensions */
+  theme?: ResolvedTheme
+}
+
+/**
+ * Default layout values (used when no theme provided)
+ */
+const DEFAULTS = {
+  nodeWidth: 180,
+  nodeHeight: 60,
+  decisionNodeHeight: 80,
+  nodeSpacingX: 60,
+  nodeSpacingY: 80,
+  canvasPadding: 40,
+}
 
 /**
  * Check if a vertical line segment would intersect with any nodes (excluding source/target)
@@ -186,28 +199,38 @@ function computeOrthogonalPath(
 /**
  * Compute layout positions for all nodes and edges
  */
-export function computeLayout(doc: TraceDocument): LayoutResult {
+export function computeLayout(doc: TraceDocument, options: LayoutOptions = {}): LayoutResult {
+  const { theme } = options
+
+  // Get layout values from theme or use defaults
+  const nodeWidth = theme?.shapes.nodeMinWidth ?? DEFAULTS.nodeWidth
+  const nodeHeight = DEFAULTS.nodeHeight // Could be computed from theme.shapes.nodePadding
+  const decisionNodeHeight = DEFAULTS.decisionNodeHeight
+  const nodeSpacingX = theme?.layout.nodeSpacingX ?? DEFAULTS.nodeSpacingX
+  const nodeSpacingY = theme?.layout.nodeSpacingY ?? DEFAULTS.nodeSpacingY
+  const canvasPadding = theme?.layout.canvasPadding ?? DEFAULTS.canvasPadding
+
   const g = new dagre.graphlib.Graph()
 
   // Set graph direction
   const rankdir = doc.direction ?? 'TB'
   g.setGraph({
     rankdir,
-    nodesep: 60,
-    ranksep: 80,
-    marginx: 40,
-    marginy: 40,
+    nodesep: nodeSpacingX,
+    ranksep: nodeSpacingY,
+    marginx: canvasPadding,
+    marginy: canvasPadding,
   })
 
   g.setDefaultEdgeLabel(() => ({}))
 
   // Add nodes
   for (const node of doc.nodes) {
-    const nodeHeight = node.type === 'decision' ? DECISION_NODE_HEIGHT : DEFAULT_NODE_HEIGHT
+    const height = node.type === 'decision' ? decisionNodeHeight : nodeHeight
     g.setNode(node.id, {
       label: node.label,
-      width: DEFAULT_NODE_WIDTH,
-      height: nodeHeight,
+      width: nodeWidth,
+      height,
     })
   }
 
@@ -272,7 +295,7 @@ export function computeLayout(doc: TraceDocument): LayoutResult {
   return {
     nodes,
     edges,
-    width: maxX - minX + 80,
-    height: maxY - minY + 80,
+    width: maxX - minX + canvasPadding * 2,
+    height: maxY - minY + canvasPadding * 2,
   }
 }

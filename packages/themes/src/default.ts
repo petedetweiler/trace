@@ -1,4 +1,4 @@
-// Default theme - Firecrawl-inspired
+// Default theme - Clean, minimal design
 
 import type { Theme } from './types'
 
@@ -6,18 +6,35 @@ export const defaultTheme: Theme = {
   name: 'default',
   displayName: 'Default',
 
-  colors: {
-    background: '#F8F8F8',
-    nodeBackground: '#FFFFFF',
-    nodeBorder: '#E0E0E0',
-    accent: '#3a7d69',
-    accentMuted: '#d4e8e2',
-    text: '#1A1A1A',
-    textMuted: '#6B6B6B',
-    connectorStroke: '#E0E0E0',
+  // Accent colors shared across light/dark modes
+  accent: {
+    primary: '#3a7d69', // Teal - used for end nodes, hover states
+    muted: '#d4e8e2', // Light teal
     success: '#22C55E',
     warning: '#F59E0B',
     error: '#EF4444',
+  },
+
+  // Light mode colors
+  light: {
+    background: '#F8F8F8',
+    nodeBackground: '#FFFFFF',
+    nodeBorder: '#E0E0E0',
+    text: '#1A1A1A',
+    textMuted: '#6B6B6B',
+    connectorStroke: '#E0E0E0',
+    gridColor: '#E0E0E0',
+  },
+
+  // Dark mode colors - neutral grays (matching CodeMirror)
+  dark: {
+    background: '#1A1A1A',
+    nodeBackground: '#1E1E1E',
+    nodeBorder: '#3A3A3A',
+    text: '#F5F5F5',
+    textMuted: '#A0A0A0',
+    connectorStroke: '#4A4A4A',
+    gridColor: '#252525',
   },
 
   typography: {
@@ -52,7 +69,6 @@ export const defaultTheme: Theme = {
   background: {
     showGrid: true,
     gridStyle: 'dots',
-    gridColor: '#E0E0E0',
     gridSpacing: 20,
   },
 }

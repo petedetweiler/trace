@@ -1,5 +1,23 @@
 // Core type definitions for Traceflow
 
+import type { ThemeSpec } from '@traceflow/themes'
+
+// Re-export theme types from themes package
+export type {
+  ThemeSpec,
+  ThemeSpecObject,
+  ThemeOverrides,
+  ResolvedTheme,
+  Theme,
+  ThemeColors,
+  ThemeTypography,
+  ThemeShapes,
+  ThemeConnectors,
+  ThemeLayout,
+  ThemeBackground,
+  ColorSchemeMode,
+} from '@traceflow/themes'
+
 /**
  * Direction of the diagram flow
  */
@@ -74,7 +92,7 @@ export interface TraceGroup {
 export interface TraceDocument {
   title?: string
   description?: string
-  theme?: string
+  theme?: ThemeSpec
   direction?: Direction
   nodes: TraceNode[]
   edges: TraceEdge[]
