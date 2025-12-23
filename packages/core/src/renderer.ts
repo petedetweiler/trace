@@ -1,6 +1,7 @@
 // SVG renderer for Trace diagrams
 
 import type { LayoutResult, PositionedNode, PositionedEdge, Point } from './types'
+import { escapeXml, escapeXmlAttr, sanitizeId } from './escape'
 
 /**
  * Generate a smooth bezier curve path from points
@@ -109,9 +110,15 @@ export function render(layout: LayoutResult): string {
       const path = generateCurvePath(edge.points)
       const strokeDasharray = edge.style === 'dashed' ? '8 4' : edge.style === 'dotted' ? '2 4' : ''
 
+      // Sanitize IDs for safe attribute use
+      const fromId = sanitizeId(edge.from)
+      const toId = sanitizeId(edge.to)
+      const edgeId = `edge-${fromId}-${toId}`
+
       return `
-      <g class="trace-edge" data-from="${edge.from}" data-to="${edge.to}">
+      <g class="trace-edge" data-from="${escapeXmlAttr(edge.from)}" data-to="${escapeXmlAttr(edge.to)}">
         <path
+          id="${edgeId}"
           d="${path}"
           fill="none"
           stroke="#E0E0E0"
@@ -119,7 +126,7 @@ export function render(layout: LayoutResult): string {
           stroke-dasharray="${strokeDasharray}"
           marker-end="url(#arrowhead)"
         />
-        ${edge.label ? `<text class="trace-edge-label" dy="-8"><textPath href="#edge-${edge.from}-${edge.to}" startOffset="50%" text-anchor="middle">${edge.label}</textPath></text>` : ''}
+        ${edge.label ? `<text class="trace-edge-label" dy="-8"><textPath href="#${edgeId}" startOffset="50%" text-anchor="middle">${escapeXml(edge.label)}</textPath></text>` : ''}
       </g>`
     })
     .join('\n')
@@ -135,9 +142,15 @@ export function render(layout: LayoutResult): string {
       const stroke = isHighEmphasis ? '#FF6B35' : '#E0E0E0'
       const textColor = isEnd ? '#FFFFFF' : '#1A1A1A'
 
+      // Sanitize ID and escape label for safe SVG output
+      const nodeId = sanitizeId(node.id)
+      const nodeType = escapeXmlAttr(node.type ?? 'process')
+      const nodeLabel = escapeXml(node.label)
+
       return `
-      <g class="trace-node" data-id="${node.id}" data-type="${node.type ?? 'process'}">
+      <g class="trace-node" data-id="${escapeXmlAttr(node.id)}" data-type="${nodeType}">
         <path
+          id="node-${nodeId}"
           d="${shapePath}"
           fill="${fill}"
           stroke="${stroke}"
@@ -153,7 +166,7 @@ export function render(layout: LayoutResult): string {
           font-family="Inter, system-ui, sans-serif"
           font-size="14"
           font-weight="600"
-        >${node.label}</text>
+        >${nodeLabel}</text>
       </g>`
     })
     .join('\n')
