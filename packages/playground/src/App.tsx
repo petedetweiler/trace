@@ -17,7 +17,7 @@ function App() {
   const [yaml, setYaml] = useState(EXAMPLES[0].yaml)
   const [isEditorCollapsed, setIsEditorCollapsed] = useState(false)
 
-  const { svg, error } = useMemo(() => {
+  const { svg, document, error } = useMemo(() => {
     try {
       const doc = parse(yaml)
       const validation = validate(doc)
@@ -25,6 +25,7 @@ function App() {
       if (!validation.valid) {
         return {
           svg: null,
+          document: null,
           error: validation.errors.map((e) => `${e.path}: ${e.message}`).join('\n'),
         }
       }
@@ -32,10 +33,11 @@ function App() {
       const layout = computeLayout(doc)
       const svg = render(layout)
 
-      return { svg, error: null }
+      return { svg, document: doc, error: null }
     } catch (e) {
       return {
         svg: null,
+        document: null,
         error: e instanceof Error ? e.message : 'Unknown error',
       }
     }
@@ -117,7 +119,7 @@ function App() {
             {error ? (
               <div className="error-banner">{error}</div>
             ) : (
-              <Preview svg={svg} />
+              <Preview svg={svg} document={document} />
             )}
           </div>
         </div>
