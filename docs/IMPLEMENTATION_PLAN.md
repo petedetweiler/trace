@@ -15,7 +15,7 @@
 | Framework | React + Vite | Modern, fast dev experience |
 | Structure | pnpm monorepo | Separate publishable packages |
 | Publishing | npm as `@traceflow/*` | Public packages, easy consumption |
-| Design | Firecrawl-inspired | Warm grays, orange accent, dot grid |
+| Design | Claude-inspired | Warm grays, teal accent, dot grid |
 
 ### Design Tokens
 
@@ -23,7 +23,7 @@
 |---------|-------|
 | Background | `#F8F8F8` with dot grid |
 | Node cards | `#FFFFFF`, soft shadow, 12px radius |
-| Accent | `#FF6B35` (coral/orange) |
+| Accent | `#3a7d69` (teal) |
 | Connectors | `#E0E0E0`, 2px stroke |
 | Typography | Inter, 600 weight for labels |
 
@@ -41,7 +41,7 @@
 | 6 | Default Theme | ✅ Complete |
 | 7 | Security Hardening | ✅ Complete |
 | 8 | Core Package API | 🔲 Not Started |
-| 9 | Playground Polish | 🔲 Not Started |
+| 9 | Playground Polish | ✅ Complete |
 | 10 | Interactivity | 🔲 Not Started |
 | 11 | Claude Skill | 🔲 Not Started |
 | 12 | Publishing Setup | 🔲 Not Started |
@@ -118,8 +118,8 @@ Set up the monorepo structure and tooling.
 
 ### Phase 6: Default Theme ✅
 
-- [x] Firecrawl-inspired design tokens
-- [x] Color palette
+- [x] Claude-inspired design tokens
+- [x] Teal accent color palette
 - [x] Typography settings
 - [x] Shape configurations
 
@@ -152,12 +152,17 @@ Addressed vulnerabilities identified in security audit.
 
 ---
 
-### Phase 9: Playground Polish 🔲
+### Phase 9: Playground Polish ✅
 
-- [ ] Export buttons (SVG, PNG, copy YAML)
-- [ ] Example gallery
-- [ ] Theme picker
-- [ ] Better error display
+- [x] Export split button (PNG default, SVG dropdown)
+- [x] Copy YAML button
+- [x] Examples dropdown with 4 pre-built diagrams
+- [x] Collapsible editor pane
+- [x] Claude-inspired syntax highlighting for YAML
+- [x] Taller decision nodes for better label readability
+- [ ] Theme picker (deferred)
+
+**Files:** `ExportButton.tsx`, `ExamplesDropdown.tsx`, `examples.ts`, `Editor.tsx`
 
 ---
 

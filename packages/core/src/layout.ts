@@ -8,6 +8,7 @@ import type { TraceDocument, LayoutResult, PositionedNode, PositionedEdge, Point
  */
 const DEFAULT_NODE_WIDTH = 180
 const DEFAULT_NODE_HEIGHT = 60
+const DECISION_NODE_HEIGHT = 80
 
 /**
  * Check if a vertical line segment would intersect with any nodes (excluding source/target)
@@ -202,10 +203,11 @@ export function computeLayout(doc: TraceDocument): LayoutResult {
 
   // Add nodes
   for (const node of doc.nodes) {
+    const nodeHeight = node.type === 'decision' ? DECISION_NODE_HEIGHT : DEFAULT_NODE_HEIGHT
     g.setNode(node.id, {
       label: node.label,
       width: DEFAULT_NODE_WIDTH,
-      height: DEFAULT_NODE_HEIGHT,
+      height: nodeHeight,
     })
   }
 

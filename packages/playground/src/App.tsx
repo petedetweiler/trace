@@ -15,6 +15,7 @@ import {
 
 function App() {
   const [yaml, setYaml] = useState(EXAMPLES[0].yaml)
+  const [isEditorCollapsed, setIsEditorCollapsed] = useState(false)
 
   const { svg, error } = useMemo(() => {
     try {
@@ -74,13 +75,38 @@ function App() {
       </header>
 
       <main className="main">
-        <div className="editor-pane">
+        <div className={`editor-pane ${isEditorCollapsed ? 'collapsed' : ''}`}>
           <div className="editor-header">
             <span>YAML</span>
+            <button
+              className="collapse-button"
+              onClick={() => setIsEditorCollapsed(!isEditorCollapsed)}
+              aria-label={isEditorCollapsed ? 'Expand editor' : 'Collapse editor'}
+              title={isEditorCollapsed ? 'Expand editor' : 'Collapse editor'}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                style={{ transform: isEditorCollapsed ? 'rotate(180deg)' : 'none' }}
+              >
+                <path
+                  d="M10 12L6 8L10 4"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
           </div>
-          <div className="editor-content">
-            <Editor value={yaml} onChange={setYaml} />
-          </div>
+          {!isEditorCollapsed && (
+            <div className="editor-content">
+              <Editor value={yaml} onChange={setYaml} />
+            </div>
+          )}
         </div>
 
         <div className="preview-pane">

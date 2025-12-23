@@ -202,8 +202,8 @@ export function render(layout: LayoutResult): string {
       const isHighEmphasis = node.emphasis === 'high'
       const isEnd = node.type === 'end'
 
-      const fill = isEnd ? '#FF6B35' : '#FFFFFF'
-      const stroke = isHighEmphasis ? '#FF6B35' : '#E0E0E0'
+      const fill = isEnd ? '#3a7d69' : '#FFFFFF'
+      const stroke = isHighEmphasis ? '#3a7d69' : '#E0E0E0'
       const textColor = isEnd ? '#FFFFFF' : '#1A1A1A'
 
       // Sanitize ID and escape label for safe SVG output
