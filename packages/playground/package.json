@@ -1,0 +1,33 @@
+{
+  "name": "@traceflow/playground",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Interactive playground for Traceflow diagrams",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@codemirror/commands": "^6.10.1",
+    "@codemirror/lang-yaml": "^6.0.0",
+    "@codemirror/state": "^6.4.0",
+    "@codemirror/view": "^6.24.0",
+    "@traceflow/core": "workspace:*",
+    "@traceflow/themes": "workspace:*",
+    "codemirror": "^6.0.1",
+    "d3-zoom": "^3.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/d3-zoom": "^3.0.8",
+    "@types/react": "^18.2.45",
+    "@types/react-dom": "^18.2.18",
+    "@vitejs/plugin-react": "^4.2.1",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.10"
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "name": "@traceflow/core",
+  "version": "0.0.1",
+  "description": "AI-first diagram rendering engine — YAML in, beautiful SVG out",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "dev": "tsup src/index.ts --format esm --dts --watch",
+    "test": "vitest",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "diagrams",
+    "flowchart",
+    "svg",
+    "yaml",
+    "rendering"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@traceflow/themes": "workspace:*"
+  },
+  "dependencies": {
+    "dagre": "^0.8.5",
+    "yaml": "^2.3.4"
+  },
+  "devDependencies": {
+    "@types/dagre": "^0.7.52",
+    "tsup": "^8.0.1",
+    "typescript": "^5.3.3",
+    "vitest": "^1.1.0"
+  }
+}

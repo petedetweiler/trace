@@ -1,0 +1,30 @@
+{
+  "name": "traceflow",
+  "private": true,
+  "version": "0.0.0",
+  "description": "AI-first diagram rendering library — YAML in, beautiful SVG out",
+  "scripts": {
+    "dev": "pnpm --filter @traceflow/playground dev",
+    "build": "pnpm -r build",
+    "build:core": "pnpm --filter @traceflow/core build",
+    "build:themes": "pnpm --filter @traceflow/themes build",
+    "build:playground": "pnpm --filter @traceflow/playground build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "clean": "pnpm -r clean"
+  },
+  "keywords": [
+    "diagrams",
+    "flowchart",
+    "svg",
+    "yaml",
+    "ai",
+    "visualization"
+  ],
+  "author": "",
+  "license": "MIT",
+  "packageManager": "pnpm@9.0.0",
+  "engines": {
+    "node": ">=18"
+  }
+}
