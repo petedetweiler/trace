@@ -73,7 +73,7 @@ function wouldIntersectNodes(
  * Creates paths with only horizontal and vertical segments
  * Smart routing to avoid node collisions
  */
-function computeOrthogonalPath(
+export function computeOrthogonalPath(
   source: PositionedNode,
   target: PositionedNode,
   edge: TraceEdge,
@@ -98,15 +98,18 @@ function computeOrthogonalPath(
 
   if (isVertical) {
     const goingDown = target.y > source.y
+    const isForward = rankdir === 'BT' ? target.y < source.y : goingDown
+    const sourceY = goingDown ? sourceBottom : sourceTop
+    const targetY = goingDown ? targetTop : targetBottom
     const margin = 40
 
     // Forward edge (going with the flow)
-    if (goingDown) {
+    if (isForward) {
       // For alternative paths from decision nodes, or when path would collide,
       // route around the side
       const needsSideRoute =
         isAlternativePath &&
-        (source.type === 'decision' || wouldIntersectNodes(source.x, sourceBottom, targetTop, source, target, allNodes))
+        (source.type === 'decision' || wouldIntersectNodes(source.x, sourceY, targetY, source, target, allNodes))
 
       if (needsSideRoute) {
         // Determine which side to route based on target position
@@ -138,19 +141,16 @@ function computeOrthogonalPath(
       }
 
       // Standard forward edge routing
-      const sourceY = sourceBottom
-      const targetY = targetTop
-
-      // If horizontally aligned (or close enough), straight vertical line
-      if (Math.abs(source.x - target.x) < 60) {
-        const midX = (source.x + target.x) / 2
+      // Only use a straight vertical line when both node centers align.
+      // Averaging nearby centers leaves the path detached from both ports.
+      if (source.x === target.x) {
         return [
-          { x: midX, y: sourceY },
-          { x: midX, y: targetY },
+          { x: source.x, y: sourceY },
+          { x: target.x, y: targetY },
         ]
       }
 
-      // Need a horizontal jog for larger offsets
+      // Need a horizontal jog whenever the centers differ
       const midY = (sourceY + targetY) / 2
       return [
         { x: source.x, y: sourceY },
@@ -175,12 +175,15 @@ function computeOrthogonalPath(
 
   // Horizontal flow (LR/RL)
   const goingRight = target.x > source.x
+  const isForward = rankdir === 'RL' ? target.x < source.x : goingRight
 
-  if (goingRight) {
-    const sourceX = sourceRight
-    const targetX = targetLeft
+  if (isForward) {
+    const sourceX = goingRight ? sourceRight : sourceLeft
+    const targetX = goingRight ? targetLeft : targetRight
 
-    if (Math.abs(source.y - target.y) < 20) {
+    // Only use a straight horizontal line when both node centers align.
+    // A small vertical offset still requires an orthogonal dogleg.
+    if (source.y === target.y) {
       return [
         { x: sourceX, y: source.y },
         { x: targetX, y: target.y },
