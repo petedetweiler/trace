@@ -23,7 +23,9 @@ export {
   getTheme,
   getThemeNames,
   defaultTheme,
+  editorialTheme,
+  werkstattTheme,
   blueprintTheme,
-  corporateTheme,
-  vibrantTheme,
+  terminalTheme,
+  nocturneTheme,
 } from '@traceflow/themes'

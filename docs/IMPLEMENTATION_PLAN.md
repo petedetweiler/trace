@@ -2,9 +2,9 @@
 
 > AI-first diagram rendering library — YAML in, beautiful SVG out
 
-**Status:** MVP In Progress
+**Status:** Authoring, Embedding & Interchange Milestone Complete
 **Started:** December 23, 2024
-**Last Updated:** December 23, 2024
+**Last Updated:** August 11, 2026
 
 ---
 
@@ -40,12 +40,14 @@
 | 5 | SVG Renderer | ✅ Complete |
 | 6 | Default Theme | ✅ Complete |
 | 7 | Security Hardening | ✅ Complete |
-| 8 | Core Package API | 🔲 Not Started |
+| 8 | Core Package API | 🟡 Partial |
 | 9 | Playground Polish | ✅ Complete |
-| 10 | Interactivity | 🔲 Not Started |
-| 11 | Claude Skill | 🔲 Not Started |
-| 12 | Publishing Setup | 🔲 Not Started |
-| 13 | Deployment | 🔲 Not Started |
+| 10 | Interactivity | ✅ Complete |
+| 11 | AI Authoring Skill | ✅ Complete |
+| 12 | Publishing Setup | 🟡 Partial |
+| 13 | Deployment | ✅ Complete |
+| 14 | Sharing & Draft Recovery | ✅ Complete |
+| 15 | Authoring, Embedding & Interchange | ✅ Complete |
 
 ---
 
@@ -160,55 +162,86 @@ Addressed vulnerabilities identified in security audit.
 - [x] Collapsible editor pane
 - [x] Claude-inspired syntax highlighting for YAML
 - [x] Taller decision nodes for better label readability
-- [ ] Theme picker (deferred)
+- [x] Theme picker
+- [x] YAML-synchronized orientation controls (TB/LR/BT/RL)
+- [x] Responsive fit-to-view preview with pan/zoom controls
+- [x] Versioned compressed share links
+- [x] Read-only presentation mode
+- [x] Local draft recovery that preserves drafts when opening shared links
 
 **Files:** `ExportButton.tsx`, `ExamplesDropdown.tsx`, `examples.ts`, `Editor.tsx`
 
 ---
 
-### Phase 10: Interactivity 🔲
+### Phase 10: Interactivity ✅
 
-- [ ] Pan/zoom with d3-zoom
-- [ ] Hover tooltips
-- [ ] Focus states
+- [x] Host-controlled pan/zoom with script-free SVG exports
+- [x] Hover tooltips
+- [x] Keyboard focus states and accessible SVG labels
 
 ---
 
-### Phase 11: Claude Skill 🔲
+### Phase 11: AI Authoring Skill ✅
 
-- [ ] SKILL.md with schema reference
-- [ ] EXAMPLES.md with patterns
-- [ ] Test with Claude
+- [x] Installable `author-traceflow` skill package
+- [x] Progressive schema, pattern, and example references
+- [x] Agent UI metadata
+- [x] Skill package validation
+- [x] Core tests that parse and validate every bundled YAML example
+
+**Files:** `skills/author-traceflow/`
 
 ---
 
 ### Phase 12: Publishing Setup 🔲
 
 - [ ] npm publish config
-- [ ] GitHub Actions CI/CD
+- [x] GitHub Actions CI for lint, typecheck, tests, and build
 - [ ] Release workflow
 
 ---
 
-### Phase 13: Deployment 🔲
+### Phase 13: Deployment ✅
 
-- [ ] Deploy playground to Vercel
-- [ ] Custom domain (optional)
+- [x] Deploy playground to Netlify
+- [x] Custom domain (`trace.peterdetweiler.com`)
 - [ ] Meta tags, OG image
+
+---
+
+### Phase 14: Sharing & Draft Recovery ✅
+
+- [x] Versioned, compressed URL-hash format
+- [x] Editable and presentation share links
+- [x] Read-only presentation canvas
+- [x] Local draft recovery
+- [x] Preserve an existing local draft when opening an unedited shared link
+- [x] Back/forward navigation between shared states
+- [x] Round-trip tests including Unicode YAML
+
+---
+
+### Phase 15: Authoring, Embedding & Interchange ✅
+
+- [x] Rendered groups/swimlanes with direction-aware layout
+- [x] Built-in icons and safe custom glyphs
+- [x] Inline schema diagnostics, contextual autocomplete, and actionable repairs
+- [x] Persistent node/edge descriptions panel
+- [x] Responsive, chrome-free embed links
+- [x] Mermaid flowchart import with semantic edge inference
+- [x] Visual custom theme builder that writes portable YAML overrides
+- [x] Unit, type, lint, build, and browser verification
 
 ---
 
 ## Out of Scope (V1)
 
-Per PRD, deferred to V2/V3:
+Remaining candidates for later milestones:
 
-- Additional themes (dark, minimal, blueprint, hand-drawn)
-- Groups / swimlanes
-- Custom icons
-- Animated edges
-- Click-to-expand descriptions
-- Shareable URLs
-- Mermaid import
+- Public package and CLI distribution
+- Nested groups and collapsible subflows
+- Extensible SVG icon packs beyond built-ins and custom glyphs
+- Full Mermaid subgraph/style import
 
 ---
 

@@ -5,140 +5,129 @@ import { syntaxHighlighting, HighlightStyle } from '@codemirror/language'
 import { tags } from '@lezer/highlight'
 import { yaml } from '@codemirror/lang-yaml'
 import { defaultKeymap } from '@codemirror/commands'
+import { autocompletion, type CompletionContext } from '@codemirror/autocomplete'
+import { linter, lintGutter, lintKeymap, type Diagnostic } from '@codemirror/lint'
+import type { ResolvedTheme } from '@traceflow/core'
+import { analyzeTraceflowYaml, getTraceflowCompletions } from '../utils/editorSchema'
 
-// Light mode highlight style - Claude-inspired warm palette
-const lightHighlightStyle = HighlightStyle.define([
-  { tag: tags.keyword, color: '#8B5A2B', fontWeight: '600' }, // Warm brown
-  { tag: tags.atom, color: '#D4A574' }, // Warm tan
-  { tag: tags.bool, color: '#C17F59', fontWeight: '600' }, // Terracotta
-  { tag: tags.string, color: '#7B8F6A' }, // Sage green
-  { tag: tags.number, color: '#9B7AA0' }, // Dusty purple
-  { tag: tags.comment, color: '#A89F91', fontStyle: 'italic' }, // Warm gray
-  { tag: tags.propertyName, color: '#DA7756' }, // Claude coral
-  { tag: tags.variableName, color: '#DA7756' }, // Claude coral
-  { tag: tags.punctuation, color: '#8B7355' }, // Muted brown
-  { tag: tags.meta, color: '#C9956B' }, // Amber/caramel
-])
+function traceflowCompletions(context: CompletionContext) {
+  const result = getTraceflowCompletions(context.state.doc.toString(), context.pos)
+  if (!result) return null
+  return {
+    from: result.from,
+    options: result.options.map((label) => ({ label, type: label.includes(':') ? 'property' : 'enum' })),
+    validFor: /^[\w-]*$/,
+  }
+}
 
-// Dark mode highlight style - high contrast for readability
-const darkHighlightStyle = HighlightStyle.define([
-  // Keys and structure
-  { tag: tags.keyword, color: '#E8B88A', fontWeight: '600' }, // Light warm brown
-  { tag: tags.propertyName, color: '#F0967A' }, // Light coral for keys
-  { tag: tags.definition(tags.propertyName), color: '#F0967A' }, // Coral for key definitions
-  { tag: tags.meta, color: '#E8B878' }, // Light amber
+function traceflowDiagnostics(source: string): Diagnostic[] {
+  return analyzeTraceflowYaml(source).map((diagnostic) => ({
+    from: diagnostic.from,
+    to: diagnostic.to,
+    severity: diagnostic.severity,
+    message: diagnostic.message,
+    actions: diagnostic.repair ? [{
+      name: diagnostic.repair.label,
+      apply(view) {
+        view.dispatch({
+          changes: {
+            from: diagnostic.repair!.from,
+            to: diagnostic.repair!.to,
+            insert: diagnostic.repair!.insert,
+          },
+        })
+      },
+    }] : undefined,
+  }))
+}
 
-  // Values - ensure high contrast
-  { tag: tags.string, color: '#A8C494' }, // Light sage green
-  { tag: tags.number, color: '#C9A8CE' }, // Light dusty purple
-  { tag: tags.bool, color: '#E8A882', fontWeight: '600' }, // Light terracotta
-  { tag: tags.null, color: '#E8A882' }, // Light terracotta
-  { tag: tags.atom, color: '#D4D4D4' }, // Light gray for atoms
-  { tag: tags.literal, color: '#D4D4D4' }, // Light gray for literals
-  { tag: tags.content, color: '#D4D4D4' }, // Light gray for content
+function withAlpha(color: string, alpha: number): string {
+  const match = /^#([0-9a-f]{6})$/i.exec(color)
+  if (!match) return color
+  const value = match[1]
+  return `rgba(${Number.parseInt(value.slice(0, 2), 16)}, ${Number.parseInt(value.slice(2, 4), 16)}, ${Number.parseInt(value.slice(4, 6), 16)}, ${alpha})`
+}
 
-  // Names and variables
-  { tag: tags.name, color: '#D4D4D4' }, // Light gray for names
-  { tag: tags.variableName, color: '#D4D4D4' }, // Light gray
-  { tag: tags.labelName, color: '#D4D4D4' }, // Light gray
-  { tag: tags.definition(tags.variableName), color: '#F0967A' }, // Coral for definitions
+function createHighlightStyle(theme: ResolvedTheme) {
+  const { colors } = theme
+  return HighlightStyle.define([
+    { tag: tags.keyword, color: colors.warning, fontWeight: '600' },
+    { tag: tags.propertyName, color: colors.accent },
+    { tag: tags.definition(tags.propertyName), color: colors.accent, fontWeight: '600' },
+    { tag: tags.meta, color: colors.warning },
+    { tag: tags.string, color: colors.success },
+    { tag: tags.number, color: colors.warning },
+    { tag: tags.bool, color: colors.warning, fontWeight: '600' },
+    { tag: tags.null, color: colors.error },
+    { tag: tags.atom, color: colors.text },
+    { tag: tags.literal, color: colors.text },
+    { tag: tags.content, color: colors.text },
+    { tag: tags.name, color: colors.text },
+    { tag: tags.variableName, color: colors.text },
+    { tag: tags.labelName, color: colors.text },
+    { tag: tags.punctuation, color: colors.textMuted },
+    { tag: tags.separator, color: colors.textMuted },
+    { tag: tags.operator, color: colors.text },
+    { tag: [tags.comment, tags.lineComment, tags.blockComment], color: colors.textMuted, fontStyle: 'italic' },
+  ])
+}
 
-  // Punctuation and operators
-  { tag: tags.punctuation, color: '#808080' }, // Medium gray for punctuation
-  { tag: tags.separator, color: '#808080' }, // Medium gray
-  { tag: tags.operator, color: '#D4D4D4' }, // Light gray
-
-  // Comments
-  { tag: tags.comment, color: '#6A6A6A', fontStyle: 'italic' }, // Dim gray
-  { tag: tags.lineComment, color: '#6A6A6A', fontStyle: 'italic' },
-  { tag: tags.blockComment, color: '#6A6A6A', fontStyle: 'italic' },
-])
-
-// Light theme
-const lightTheme = EditorView.theme({
-  '&': {
-    height: '100%',
-    backgroundColor: '#FFFFFF',
-  },
-  '.cm-scroller': {
-    fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-    fontSize: '14px',
-  },
-  '.cm-content': {
-    padding: '16px 0',
-    caretColor: '#1A1A1A',
-  },
-  '.cm-line': {
-    padding: '0 16px',
-  },
-  '.cm-gutters': {
-    backgroundColor: '#FFFFFF',
-    color: '#A0A0A0',
-    border: 'none',
-  },
-  '.cm-activeLineGutter': {
-    backgroundColor: '#F5F5F5',
-  },
-  '.cm-activeLine': {
-    backgroundColor: '#F8F8F8',
-  },
-  '.cm-selectionBackground': {
-    backgroundColor: '#E8E8E8',
-  },
-  '&.cm-focused .cm-selectionBackground': {
-    backgroundColor: '#D4E8E2',
-  },
-  '.cm-cursor': {
-    borderLeftColor: '#1A1A1A',
-  },
-})
-
-// Dark theme - neutral grays
-const darkTheme = EditorView.theme({
-  '&': {
-    height: '100%',
-    backgroundColor: '#1E1E1E',
-  },
-  '.cm-scroller': {
-    fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-    fontSize: '14px',
-  },
-  '.cm-content': {
-    padding: '16px 0',
-    caretColor: '#F5F5F5',
-  },
-  '.cm-line': {
-    padding: '0 16px',
-  },
-  '.cm-gutters': {
-    backgroundColor: '#1E1E1E',
-    color: '#6A6A6A',
-    border: 'none',
-  },
-  '.cm-activeLineGutter': {
-    backgroundColor: '#2A2A2A',
-  },
-  '.cm-activeLine': {
-    backgroundColor: '#252525',
-  },
-  '.cm-selectionBackground': {
-    backgroundColor: '#3A3A3A',
-  },
-  '&.cm-focused .cm-selectionBackground': {
-    backgroundColor: '#4A4A4A',
-  },
-  '.cm-cursor': {
-    borderLeftColor: '#F5F5F5',
-  },
-}, { dark: true })
+function createEditorTheme(theme: ResolvedTheme) {
+  const { colors } = theme
+  return EditorView.theme({
+    '&': {
+      height: '100%',
+      backgroundColor: colors.nodeBackground,
+      color: colors.text,
+    },
+    '.cm-scroller': {
+      fontFamily: '"JetBrains Mono", "SFMono-Regular", Consolas, monospace',
+      fontSize: theme.name === 'terminal' ? '13px' : '14px',
+    },
+    '.cm-content': {
+      padding: '16px 0',
+      caretColor: colors.accent,
+    },
+    '.cm-line': { padding: '0 16px' },
+    '.cm-gutters': {
+      backgroundColor: colors.nodeBackground,
+      color: colors.textMuted,
+      border: 'none',
+    },
+    '.cm-activeLineGutter': {
+      backgroundColor: withAlpha(colors.accent, theme.mode === 'dark' ? 0.12 : 0.08),
+      color: colors.accent,
+    },
+    '.cm-activeLine': {
+      backgroundColor: withAlpha(colors.accent, theme.mode === 'dark' ? 0.07 : 0.045),
+    },
+    '.cm-selectionBackground': {
+      backgroundColor: withAlpha(colors.accent, theme.mode === 'dark' ? 0.2 : 0.14),
+    },
+    '&.cm-focused .cm-selectionBackground': {
+      backgroundColor: withAlpha(colors.accent, theme.mode === 'dark' ? 0.28 : 0.2),
+    },
+    '.cm-cursor': { borderLeftColor: colors.accent },
+    '.cm-lintRange-error': { backgroundImage: `linear-gradient(135deg, transparent 45%, ${colors.error} 45%, ${colors.error} 55%, transparent 55%)` },
+    '.cm-tooltip': {
+      backgroundColor: colors.nodeBackground,
+      color: colors.text,
+      borderColor: colors.nodeBorder,
+    },
+    '.cm-tooltip-autocomplete > ul > li[aria-selected]': {
+      backgroundColor: withAlpha(colors.accent, theme.mode === 'dark' ? 0.22 : 0.12),
+      color: colors.text,
+    },
+  }, { dark: theme.mode === 'dark' })
+}
 
 interface EditorProps {
   value: string
   onChange: (value: string) => void
-  mode?: 'light' | 'dark'
+  theme: ResolvedTheme
 }
 
-export default function Editor({ value, onChange, mode = 'light' }: EditorProps) {
+export default function Editor({ value, onChange, theme }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
   const themeCompartment = useRef(new Compartment())
@@ -148,19 +137,18 @@ export default function Editor({ value, onChange, mode = 'light' }: EditorProps)
   useEffect(() => {
     if (!containerRef.current) return
 
-    const isDark = mode === 'dark'
-
     const state = EditorState.create({
       doc: value,
       extensions: [
         lineNumbers(),
         highlightActiveLine(),
         yaml(),
-        themeCompartment.current.of(isDark ? darkTheme : lightTheme),
-        highlightCompartment.current.of(
-          syntaxHighlighting(isDark ? darkHighlightStyle : lightHighlightStyle)
-        ),
-        keymap.of(defaultKeymap),
+        lintGutter(),
+        linter((view) => traceflowDiagnostics(view.state.doc.toString()), { delay: 250 }),
+        autocompletion({ override: [traceflowCompletions], activateOnTyping: true }),
+        themeCompartment.current.of(createEditorTheme(theme)),
+        highlightCompartment.current.of(syntaxHighlighting(createHighlightStyle(theme))),
+        keymap.of([...defaultKeymap, ...lintKeymap]),
         EditorView.updateListener.of((update) => {
           if (update.docChanged) {
             onChange(update.state.doc.toString())
@@ -181,21 +169,28 @@ export default function Editor({ value, onChange, mode = 'light' }: EditorProps)
     }
   }, []) // Only run once on mount
 
-  // Update theme when mode changes
+  // Keep CodeMirror in sync when examples or preview controls update the YAML.
+  useEffect(() => {
+    const view = viewRef.current
+    if (!view) return
+    const currentValue = view.state.doc.toString()
+    if (currentValue === value) return
+
+    view.dispatch({
+      changes: { from: 0, to: currentValue.length, insert: value },
+    })
+  }, [value])
+
+  // Reconfigure CodeMirror when the curated theme changes.
   useEffect(() => {
     if (!viewRef.current) return
-
-    const isDark = mode === 'dark'
-
     viewRef.current.dispatch({
       effects: [
-        themeCompartment.current.reconfigure(isDark ? darkTheme : lightTheme),
-        highlightCompartment.current.reconfigure(
-          syntaxHighlighting(isDark ? darkHighlightStyle : lightHighlightStyle)
-        ),
+        themeCompartment.current.reconfigure(createEditorTheme(theme)),
+        highlightCompartment.current.reconfigure(syntaxHighlighting(createHighlightStyle(theme))),
       ],
     })
-  }, [mode])
+  }, [theme])
 
   return <div ref={containerRef} style={{ height: '100%' }} />
 }

@@ -79,10 +79,26 @@ export interface ThemeShapes {
   nodeMinWidth: number
   /** Maximum node width in pixels */
   nodeMaxWidth: number
+  /** Minimum node height in pixels */
+  nodeMinHeight?: number
   /** Node border width in pixels (default: 1) */
   nodeBorderWidth?: number
   /** Optional array of node fill colors (cycled for variety, e.g., sticky note colors) */
   nodeColors?: string[]
+  /** Optional chamfer applied to card-like nodes for a technical cut-corner silhouette */
+  nodeChamfer?: number
+  /** Prominent icon size in pixels */
+  nodeIconSize?: number
+  /** Icon and label composition for ordinary cards */
+  nodeIconPosition?: 'top' | 'left'
+  /** Whether ordinary node icons use the accent or text color */
+  nodeIconColor?: 'accent' | 'text'
+  /** Color family used to emphasize decision diamonds */
+  decisionColor?: 'accent' | 'warning' | 'text'
+  /** Shape treatment for start and end nodes */
+  terminalNodeStyle?: 'pill' | 'card'
+  /** Whether end nodes receive a solid accent fill */
+  fillTerminalNodes?: boolean
 }
 
 /**
@@ -107,6 +123,10 @@ export interface ThemeLayout {
   nodeSpacingY: number
   /** Padding inside groups */
   groupPadding: number
+  /** Width/height reserved for the swimlane label rail */
+  groupHeaderSize?: number
+  /** Gap between adjacent swimlanes */
+  groupGap?: number
   /** Padding around the entire canvas */
   canvasPadding: number
 }
@@ -121,6 +141,8 @@ export interface ThemeBackgroundConfig {
   gridStyle: 'dots' | 'lines' | 'blueprint'
   /** Grid spacing in pixels */
   gridSpacing: number
+  /** Optional atmospheric treatment rendered behind diagram content */
+  decoration?: 'none' | 'scanlines' | 'eclipse'
 }
 
 // =============================================================================
@@ -135,6 +157,8 @@ export interface Theme {
   name: string
   /** Human-readable theme name */
   displayName: string
+  /** Curated appearance used when the document does not request an explicit mode */
+  preferredMode?: 'light' | 'dark'
   /** Accent colors (shared across modes) */
   accent: ThemeAccent
   /** Light mode color palette */
@@ -198,6 +222,8 @@ export interface ThemeBackground {
   gridColor: string
   /** Grid spacing in pixels */
   gridSpacing: number
+  /** Atmospheric treatment rendered behind diagram content */
+  decoration: 'none' | 'scanlines' | 'eclipse'
 }
 
 /**

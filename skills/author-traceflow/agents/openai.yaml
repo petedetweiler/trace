@@ -1,0 +1,4 @@
+interface:
+  display_name: "Author Traceflow Diagrams"
+  short_description: "Turn plain-language flows into valid Traceflow YAML"
+  default_prompt: "Use $author-traceflow to turn my process description into a polished Traceflow diagram."
