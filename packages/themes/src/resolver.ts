@@ -123,6 +123,7 @@ function flattenTheme(theme: Theme, mode: 'light' | 'dark'): ResolvedTheme {
       gridStyle: theme.background.gridStyle,
       gridSpacing: theme.background.gridSpacing,
       gridColor: modeColors.gridColor,
+      decoration: theme.background.decoration ?? 'none',
     },
   }
 }
@@ -160,9 +161,13 @@ export function resolveTheme(
   if (preferredMode) {
     // Explicit mode override takes precedence
     effectiveMode = preferredMode
-  } else if (normalized.mode === 'system' || normalized.mode === undefined) {
-    // Auto-detect from system preference
+  } else if (normalized.mode === 'system') {
+    // An explicit system mode follows the operating-system preference.
     effectiveMode = getSystemMode()
+  } else if (normalized.mode === undefined) {
+    // Bundled presets are curated as light or dark experiences. Documents can
+    // still opt into system/light/dark explicitly when they need to.
+    effectiveMode = mergedTheme.preferredMode ?? 'light'
   } else {
     // Use spec mode
     effectiveMode = normalized.mode

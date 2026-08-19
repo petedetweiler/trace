@@ -121,7 +121,17 @@ export function getFilenameFromTitle(yaml: string, extension: string): string {
  */
 export async function copyToClipboard(text: string): Promise<boolean> {
   try {
-    await navigator.clipboard.writeText(text)
+    if (!navigator.clipboard?.writeText) throw new Error('Clipboard API unavailable')
+
+    let timeoutId: number | undefined
+    const timeout = new Promise<never>((_resolve, reject) => {
+      timeoutId = window.setTimeout(() => reject(new Error('Clipboard permission timed out')), 800)
+    })
+    try {
+      await Promise.race([navigator.clipboard.writeText(text), timeout])
+    } finally {
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId)
+    }
     return true
   } catch {
     // Fallback for older browsers
@@ -132,8 +142,7 @@ export async function copyToClipboard(text: string): Promise<boolean> {
     document.body.appendChild(textarea)
     textarea.select()
     try {
-      document.execCommand('copy')
-      return true
+      return document.execCommand('copy')
     } catch {
       return false
     } finally {

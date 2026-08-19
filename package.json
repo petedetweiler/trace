@@ -9,8 +9,9 @@
     "build:core": "pnpm --filter @traceflow/core build",
     "build:themes": "pnpm --filter @traceflow/themes build",
     "build:playground": "pnpm --filter @traceflow/playground build",
-    "test": "pnpm -r test",
-    "lint": "pnpm -r lint",
+    "test": "pnpm -r --if-present test",
+    "lint": "eslint packages --max-warnings=0",
+    "typecheck": "pnpm -r --if-present typecheck",
     "clean": "pnpm -r clean"
   },
   "keywords": [
@@ -26,5 +27,11 @@
   "packageManager": "pnpm@9.0.0",
   "engines": {
     "node": ">=18"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.8.1",
+    "globals": "^17.9.0",
+    "typescript-eslint": "^8.67.0"
   }
 }

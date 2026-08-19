@@ -24,6 +24,11 @@ export type {
 export type Direction = 'TB' | 'LR' | 'BT' | 'RL'
 
 /**
+ * Traceflow document schema version
+ */
+export type DocumentVersion = 1
+
+/**
  * Node types determine visual shape
  */
 export type NodeType =
@@ -52,6 +57,18 @@ export type Status = 'default' | 'success' | 'warning' | 'error'
 export type EdgeStyle = 'solid' | 'dashed' | 'dotted'
 
 /**
+ * Semantic meaning of an edge. Themes can style these independently from the
+ * edge's purely visual line style.
+ */
+export type EdgeKind =
+  | 'primary'
+  | 'success'
+  | 'failure'
+  | 'warning'
+  | 'retry'
+  | 'alternate'
+
+/**
  * A node in the diagram
  */
 export interface TraceNode {
@@ -68,10 +85,12 @@ export interface TraceNode {
  * An edge connecting two nodes
  */
 export interface TraceEdge {
+  id?: string
   from: string
   to: string
   label?: string
   description?: string
+  kind?: EdgeKind
   style?: EdgeStyle
   animate?: boolean
 }
@@ -83,6 +102,8 @@ export interface TraceGroup {
   id: string
   label: string
   nodes: string[]
+  description?: string
+  icon?: string
   color?: string
 }
 
@@ -90,6 +111,7 @@ export interface TraceGroup {
  * The complete Trace document structure
  */
 export interface TraceDocument {
+  version?: DocumentVersion
   title?: string
   description?: string
   theme?: ThemeSpec
@@ -107,6 +129,8 @@ export interface PositionedNode extends TraceNode {
   y: number
   width: number
   height: number
+  /** Deterministic wrapped label lines calculated during layout */
+  labelLines?: string[]
 }
 
 /**
@@ -125,9 +149,24 @@ export interface PositionedEdge extends TraceEdge {
 }
 
 /**
+ * Positioned swimlane/group after layout computation
+ */
+export interface PositionedGroup extends TraceGroup {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+/**
  * Layout result from Dagre
  */
 export interface LayoutResult {
+  version?: DocumentVersion
+  title?: string
+  description?: string
+  direction: Direction
+  groups?: PositionedGroup[]
   nodes: PositionedNode[]
   edges: PositionedEdge[]
   width: number

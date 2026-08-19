@@ -4,71 +4,84 @@ import type { Theme } from '../types'
 
 export const blueprintTheme: Theme = {
   name: 'blueprint',
-  displayName: 'Blueprint',
+  displayName: 'Engineering Blueprint',
+  preferredMode: 'dark',
 
   // Blue-focused accent colors
   accent: {
-    primary: '#60A5FA', // Bright blue
-    muted: '#1E3A5F', // Dark navy muted
-    success: '#34D399', // Teal green
-    warning: '#FBBF24', // Amber
-    error: '#F87171', // Coral red
+    primary: '#69B7FF',
+    muted: '#0B3561',
+    success: '#8BE5A8',
+    warning: '#FFB91F',
+    error: '#FF646B',
   },
 
   // Light mode - Cool blue drafting paper aesthetic
   light: {
-    background: '#E8F0F8', // Light blue-gray paper
-    nodeBackground: '#F5F9FC', // Very light blue node fill
-    nodeBorder: '#1E3A5F', // Dark navy borders
-    text: '#1E3A5F', // Dark navy text
-    textMuted: '#4A6D8C', // Medium navy
-    connectorStroke: '#2E5A8F', // Navy connectors
-    gridColor: '#C5D8E8', // Light blue grid
+    background: '#EAF3FA',
+    nodeBackground: '#F7FBFE',
+    nodeBorder: '#1F5D91',
+    text: '#123B61',
+    textMuted: '#4A7092',
+    connectorStroke: '#276B9F',
+    gridColor: '#C4DAEA',
   },
 
   // Dark mode - Deeper, more contrast
   dark: {
-    background: '#0F172A', // Very dark navy
-    nodeBackground: '#1E293B', // Dark slate
-    nodeBorder: '#3B82F6', // Blue
-    text: '#F8FAFC',
-    textMuted: '#64748B',
-    connectorStroke: '#3B82F6',
-    gridColor: '#1E3A5F',
+    background: '#05284D',
+    nodeBackground: '#0A315B',
+    nodeBorder: '#78BEFF',
+    text: '#F0F8FF',
+    textMuted: '#91B5D5',
+    connectorStroke: '#B7DAF7',
+    gridColor: '#174B78',
   },
 
   typography: {
     fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-    fontSizeLabel: 13,
-    fontSizeDescription: 11,
+    fontSizeLabel: 12,
+    fontSizeDescription: 10,
     fontWeightLabel: 500,
     fontWeightDescription: 400,
   },
 
   shapes: {
-    nodeCornerRadius: 4, // Sharp corners for technical feel
-    nodePadding: 12,
-    nodeShadow: 'none', // No shadows for flat blueprint look
-    nodeMinWidth: 140,
-    nodeMaxWidth: 260,
+    nodeCornerRadius: 0,
+    nodePadding: 18,
+    nodeShadow: 'none',
+    nodeMinWidth: 158,
+    nodeMaxWidth: 280,
+    nodeMinHeight: 92,
+    nodeBorderWidth: 1.25,
+    nodeChamfer: 8,
+    nodeIconSize: 28,
+    nodeIconPosition: 'left',
+    nodeIconColor: 'accent',
+    decisionColor: 'accent',
+    terminalNodeStyle: 'card',
+    fillTerminalNodes: false,
   },
 
   connectors: {
-    strokeWidth: 1.5,
+    strokeWidth: 1.25,
     curveStyle: 'orthogonal',
     arrowSize: 8,
   },
 
   layout: {
-    nodeSpacingX: 60,
-    nodeSpacingY: 70,
-    groupPadding: 20,
+    nodeSpacingX: 48,
+    nodeSpacingY: 90,
+    groupPadding: 26,
+    groupHeaderSize: 82,
+    groupGap: 10,
     canvasPadding: 30,
   },
 
   background: {
     showGrid: true,
-    gridStyle: 'lines', // Grid lines for blueprint feel
-    gridSpacing: 24,
+    gridStyle: 'blueprint',
+    gridSpacing: 20,
+    decoration: 'none',
   },
 }

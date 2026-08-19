@@ -5,9 +5,11 @@ export * from './types'
 
 // Export bundled themes
 export { defaultTheme } from './default'
+export { editorialTheme } from './themes/editorial'
+export { werkstattTheme } from './themes/werkstatt'
 export { blueprintTheme } from './themes/blueprint'
-export { corporateTheme } from './themes/corporate'
-export { vibrantTheme } from './themes/vibrant'
+export { terminalTheme } from './themes/terminal'
+export { nocturneTheme } from './themes/nocturne'
 
 // Export resolver functions
 export {
@@ -21,9 +23,11 @@ export {
 export { deepMerge } from './utils'
 
 import { defaultTheme } from './default'
+import { editorialTheme } from './themes/editorial'
+import { werkstattTheme } from './themes/werkstatt'
 import { blueprintTheme } from './themes/blueprint'
-import { corporateTheme } from './themes/corporate'
-import { vibrantTheme } from './themes/vibrant'
+import { terminalTheme } from './themes/terminal'
+import { nocturneTheme } from './themes/nocturne'
 import { setThemesRegistry } from './resolver'
 import type { Theme } from './types'
 
@@ -31,10 +35,11 @@ import type { Theme } from './types'
  * All bundled themes
  */
 export const themes: Record<string, Theme> = {
-  default: defaultTheme,
+  editorial: editorialTheme,
+  werkstatt: werkstattTheme,
   blueprint: blueprintTheme,
-  corporate: corporateTheme,
-  vibrant: vibrantTheme,
+  terminal: terminalTheme,
+  nocturne: nocturneTheme,
 }
 
 // Initialize the resolver with the themes registry

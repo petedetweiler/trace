@@ -6,15 +6,102 @@ export interface Example {
 
 export const EXAMPLES: Example[] = [
   {
+    id: 'incident-response',
+    name: 'Incident Response',
+    yaml: `version: 1
+title: Incident Response
+description: Detect, triage, and resolve production incidents
+direction: LR
+theme: editorial
+
+nodes:
+  - id: detect
+    type: start
+    label: Alert Received
+    icon: bell
+    description: Monitoring detects a potential production incident.
+  - id: enrich
+    type: process
+    label: Enrich & Correlate
+    icon: search
+    description: Attach telemetry, service ownership, and recent changes.
+  - id: triage
+    type: decision
+    label: Is this an Incident?
+    icon: help-circle
+    description: Decide whether the signal requires an incident response.
+  - id: dismiss
+    type: end
+    label: Dismissed
+    icon: x
+    status: error
+    description: Record the false positive and close the alert.
+  - id: investigate
+    type: process
+    label: Investigate
+    icon: search
+    description: Establish scope, impact, and likely cause.
+  - id: contain
+    type: process
+    label: Contain
+    icon: wrench
+    description: Limit impact while the team prepares a durable resolution.
+  - id: resolve
+    type: process
+    label: Resolve
+    icon: check
+    description: Restore normal service and verify key health signals.
+  - id: review
+    type: end
+    label: Post-Incident Review
+    icon: file-text
+    description: Capture learnings, owners, and follow-up actions.
+
+edges:
+  - from: detect
+    to: enrich
+  - from: enrich
+    to: triage
+  - from: triage
+    to: investigate
+    label: "Yes"
+    kind: success
+  - from: triage
+    to: dismiss
+    label: "No"
+    kind: failure
+  - from: investigate
+    to: contain
+  - from: contain
+    to: resolve
+  - from: resolve
+    to: review
+
+groups:
+  - id: detection
+    label: Detection
+    description: Identify and qualify potential incidents
+    icon: bell
+    nodes: [detect, enrich, triage, dismiss]
+  - id: response
+    label: Response
+    description: Investigate and resolve confirmed incidents
+    icon: wrench
+    nodes: [investigate, contain, resolve, review]
+`,
+  },
+  {
     id: 'cicd-pipeline',
     name: 'CI/CD Pipeline',
-    yaml: `title: CI/CD Pipeline
+    yaml: `version: 1
+title: CI/CD Pipeline
 description: Automated build, test, and deploy workflow
 
 nodes:
   - id: push
     type: start
     label: Code Push
+    icon: code
     description: Developer pushes code to the main branch, triggering the CI/CD pipeline automatically.
   - id: lint
     type: process
@@ -23,6 +110,7 @@ nodes:
   - id: test
     type: process
     label: Run Tests
+    icon: check
     emphasis: high
     description: Unit and integration tests are executed. This is a critical gate before proceeding.
   - id: tests_pass
@@ -44,6 +132,7 @@ nodes:
   - id: staging
     type: process
     label: Deploy Staging
+    icon: cloud
     emphasis: high
     description: Application is deployed to the staging environment for final validation.
   - id: e2e
@@ -61,6 +150,7 @@ nodes:
   - id: notify
     type: process
     label: Notify Team
+    icon: mail
     description: Slack notification sent to the team channel with failure details.
   - id: fix
     type: process
@@ -119,12 +209,23 @@ edges:
     label: "no"
     style: dashed
     description: E2E failures require investigation.
+
+groups:
+  - id: engineering
+    label: Engineering
+    nodes: [push, lint, test, tests_pass, build, scan, scan_pass, fix]
+    color: "#3a7d69"
+  - id: delivery
+    label: Delivery
+    nodes: [staging, e2e, e2e_pass, prod]
+    color: "#7c5ce7"
 `,
   },
   {
     id: 'user-auth',
     name: 'User Authentication',
-    yaml: `title: User Authentication
+    yaml: `version: 1
+title: User Authentication
 description: Login flow with validation and retry
 
 nodes:
@@ -228,7 +329,8 @@ edges:
   {
     id: 'order-processing',
     name: 'Order Processing',
-    yaml: `title: Order Processing
+    yaml: `version: 1
+title: Order Processing
 description: E-commerce order fulfillment workflow
 
 nodes:
@@ -333,7 +435,8 @@ edges:
   {
     id: 'data-pipeline',
     name: 'Data Pipeline',
-    yaml: `title: Data Pipeline
+    yaml: `version: 1
+title: Data Pipeline
 description: ETL workflow with external sources
 
 nodes:
