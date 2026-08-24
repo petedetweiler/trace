@@ -36,6 +36,31 @@ edges: []
 
     const iconValue = 'nodes:\n  - icon: help-'
     expect(getTraceflowCompletions(iconValue, iconValue.length)?.options).toContain('help-circle')
+    const conceptValue = 'nodes:\n  - icon: concept:app'
+    expect(getTraceflowCompletions(conceptValue, conceptValue.length)?.options)
+      .toContain('concept:approval')
+  })
+
+  it('recognizes the MIT Tabler catalog and repairs close icon typos', () => {
+    const valid = analyzeTraceflowYaml(`version: 1
+nodes:
+  - id: secure
+    label: Secure
+    icon: tabler:shield-check
+  - id: approve
+    label: Approve
+    icon: concept:approval
+edges: []`)
+    expect(valid.some((diagnostic) => diagnostic.message.includes('Unknown icon'))).toBe(false)
+
+    const typo = analyzeTraceflowYaml(`version: 1
+nodes:
+  - id: secure
+    label: Secure
+    icon: shield-chek
+edges: []`)
+    expect(typo.find((diagnostic) => diagnostic.message.includes('Unknown icon'))?.repair)
+      .toMatchObject({ label: 'Use shield-check', insert: 'shield-check' })
   })
 
   it('reports malformed YAML at a bounded source range', () => {

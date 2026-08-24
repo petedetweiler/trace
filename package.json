@@ -10,6 +10,7 @@
     "build:themes": "pnpm --filter @traceflow/themes build",
     "build:playground": "pnpm --filter @traceflow/playground build",
     "test": "pnpm -r --if-present test",
+    "check:icon-license": "pnpm --filter @traceflow/icons check:license",
     "lint": "eslint packages --max-warnings=0",
     "typecheck": "pnpm -r --if-present typecheck",
     "clean": "pnpm -r clean"

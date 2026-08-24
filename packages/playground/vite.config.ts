@@ -4,6 +4,9 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   build: {
+    // The complete non-brand Tabler catalog is intentionally kept in a lazy
+    // chunk so the editor can offer visual search without inflating startup.
+    chunkSizeWarningLimit: 2000,
     rollupOptions: {
       output: {
         manualChunks(id) {

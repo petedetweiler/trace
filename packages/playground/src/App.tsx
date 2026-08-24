@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   parse,
   validate,
@@ -8,12 +8,19 @@ import {
   getTheme,
   getSystemColorScheme,
   onColorSchemeChange,
+  resolveIconReference,
   type ColorSchemeMode,
   type Direction,
+  type IconPack,
 } from '@traceflow/core'
 import Editor from './components/Editor'
+import type { EditorHandle } from './components/Editor'
 import Preview from './components/Preview'
-import type { DiagramSelection } from './components/Preview'
+import type {
+  DiagramSelection,
+  DiagramSelectionAnchor,
+  NodeDiagramSelection,
+} from './components/Preview'
 import { ExportButton, type ExportFormat } from './components/ExportButton'
 import { ExamplesDropdown } from './components/ExamplesDropdown'
 import { ThemeSelector } from './components/ThemeSelector'
@@ -22,6 +29,7 @@ import { ShareButton } from './components/ShareButton'
 import { DetailsPanel } from './components/DetailsPanel'
 import { ImportMermaidDialog } from './components/ImportMermaidDialog'
 import { ThemeBuilderDialog } from './components/ThemeBuilderDialog'
+import { IconPickerDialog } from './components/IconPickerDialog'
 import { EXAMPLES } from './data/examples'
 import {
   downloadFile,
@@ -43,6 +51,11 @@ import {
   DEFAULT_THEME_BUILDER_VALUES,
   type ThemeBuilderValues,
 } from './utils/themeBuilder'
+import { applyIconToNode } from './utils/iconAuthoring'
+import {
+  applyNodeAttributeUpdates,
+  type NodeAttributeUpdates,
+} from './utils/nodeAuthoring'
 
 interface InitialDocumentState {
   yaml: string
@@ -193,14 +206,20 @@ function App() {
   const [viewMode, setViewMode] = useState<ShareMode>(initialDocument.mode)
   const [shareError, setShareError] = useState(initialDocument.error)
   const [selection, setSelection] = useState<DiagramSelection | null>(null)
+  const [selectionAnchor, setSelectionAnchor] = useState<DiagramSelectionAnchor | null>(null)
   const [isMermaidImportOpen, setIsMermaidImportOpen] = useState(false)
   const [isThemeBuilderOpen, setIsThemeBuilderOpen] = useState(false)
+  const [isIconPickerOpen, setIsIconPickerOpen] = useState(false)
+  const [tablerIconPack, setTablerIconPack] = useState<IconPack | null>(null)
+  const [iconPackError, setIconPackError] = useState<string | null>(null)
   const [themeName, setThemeName] = useState('editorial')
   const [themeMode, setThemeMode] = useState<ColorSchemeMode>(() => (
     getDocumentThemeMode(initialDocument.yaml) ?? 'light'
   ))
   const [systemMode, setSystemMode] = useState<'light' | 'dark'>(getSystemColorScheme)
   const shouldPersistDraftRef = useRef(initialDocument.source !== 'share')
+  const editorRef = useRef<EditorHandle>(null)
+  const iconPackPromiseRef = useRef<Promise<IconPack> | null>(null)
   const isPresentationMode = viewMode === 'presentation'
   const isEmbedMode = viewMode === 'embed'
   const isReadOnly = viewMode !== 'edit'
@@ -208,6 +227,64 @@ function App() {
   const updateYaml = (update: string | ((current: string) => string)) => {
     shouldPersistDraftRef.current = true
     setYaml(update)
+  }
+
+  const loadTablerIconPack = useCallback(async () => {
+    if (tablerIconPack) return tablerIconPack
+    setIconPackError(null)
+    if (!iconPackPromiseRef.current) {
+      iconPackPromiseRef.current = import('@traceflow/icons/tabler')
+        .then((module) => module.tablerIconPack)
+    }
+    try {
+      const pack = await iconPackPromiseRef.current
+      setTablerIconPack(pack)
+      return pack
+    } catch {
+      iconPackPromiseRef.current = null
+      setIconPackError('The full Tabler catalog could not be loaded. Traceflow essentials are still available.')
+      return null
+    }
+  }, [tablerIconPack])
+
+  const openIconPickerForNode = useCallback((
+    node: NodeDiagramSelection,
+    anchor?: DiagramSelectionAnchor
+  ) => {
+    setSelection(node)
+    if (anchor) setSelectionAnchor(anchor)
+    setIsIconPickerOpen(true)
+    void loadTablerIconPack()
+  }, [loadTablerIconPack])
+
+  const handleDiagramSelect = useCallback((
+    nextSelection: DiagramSelection,
+    anchor: DiagramSelectionAnchor
+  ) => {
+    setSelection(nextSelection)
+    setSelectionAnchor(anchor)
+  }, [])
+
+  const handleNodeUpdate = (nodeId: string, updates: NodeAttributeUpdates) => {
+    updateYaml((current) => applyNodeAttributeUpdates(current, nodeId, updates))
+    setSelection((current) => {
+      if (current?.kind !== 'node' || current.id !== nodeId) return current
+      const next = { ...current }
+      if (updates.label !== undefined) next.label = updates.label
+      if (Object.prototype.hasOwnProperty.call(updates, 'description')) {
+        next.description = updates.description ?? undefined
+      }
+      if (Object.prototype.hasOwnProperty.call(updates, 'type')) {
+        next.type = updates.type ?? undefined
+      }
+      if (Object.prototype.hasOwnProperty.call(updates, 'status')) {
+        next.status = updates.status ?? undefined
+      }
+      if (Object.prototype.hasOwnProperty.call(updates, 'emphasis')) {
+        next.emphasis = updates.emphasis ?? undefined
+      }
+      return next
+    })
   }
 
   // Listen for system color scheme changes
@@ -223,6 +300,24 @@ function App() {
       // Draft recovery is a convenience, not a requirement.
     }
   }, [yaml])
+
+  // Load the optional full catalog only when a document references an icon
+  // outside the bundled essentials. The rendered SVG remains self-contained.
+  useEffect(() => {
+    if (tablerIconPack) return
+    try {
+      const parsed = parse(yaml)
+      const references = [
+        ...parsed.nodes.map((node) => node.icon),
+        ...(parsed.groups ?? []).map((group) => group.icon),
+      ].filter((icon): icon is string => Boolean(icon))
+      if (references.some((icon) => resolveIconReference(icon)?.kind === 'unknown')) {
+        void loadTablerIconPack()
+      }
+    } catch {
+      // Invalid documents are handled by the editor diagnostics.
+    }
+  }, [loadTablerIconPack, tablerIconPack, yaml])
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -288,7 +383,10 @@ function App() {
       const resolvedTheme = resolveTheme(themeSpec, effectiveMode)
 
       const layout = computeLayout(doc, { theme: resolvedTheme })
-      const svg = render(layout, { theme: resolvedTheme })
+      const svg = render(layout, {
+        theme: resolvedTheme,
+        iconPacks: tablerIconPack ? [tablerIconPack] : [],
+      })
 
       return { svg, document: doc, resolvedTheme, error: null }
     } catch (e) {
@@ -299,7 +397,7 @@ function App() {
         error: e instanceof Error ? e.message : 'Unknown error',
       }
     }
-  }, [yaml, themeName, effectiveMode])
+  }, [yaml, themeName, effectiveMode, tablerIconPack])
 
   const activeDirection: Direction = document?.direction ?? 'TB'
   const documentThemeName = typeof document?.theme === 'string'
@@ -461,33 +559,48 @@ function App() {
         {!isReadOnly && <div className={`editor-pane ${isEditorCollapsed ? 'collapsed' : ''}`}>
           <div className="editor-header">
             <span>YAML</span>
-            <button
-              className="collapse-button"
-              onClick={() => setIsEditorCollapsed(!isEditorCollapsed)}
-              aria-label={isEditorCollapsed ? 'Expand editor' : 'Collapse editor'}
-              title={isEditorCollapsed ? 'Expand editor' : 'Collapse editor'}
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                style={{ transform: isEditorCollapsed ? 'rotate(180deg)' : 'none' }}
+            <div className="editor-header-actions">
+              {!isEditorCollapsed && (
+                <button
+                  className="editor-tool-button"
+                  type="button"
+                  onClick={() => {
+                    setIsIconPickerOpen(true)
+                    void loadTablerIconPack()
+                  }}
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h5v5H5zM14 5h5v5h-5zM5 14h5v5H5z" /><circle cx="16.5" cy="16.5" r="2.5" /></svg>
+                  Icons
+                </button>
+              )}
+              <button
+                className="collapse-button"
+                onClick={() => setIsEditorCollapsed(!isEditorCollapsed)}
+                aria-label={isEditorCollapsed ? 'Expand editor' : 'Collapse editor'}
+                title={isEditorCollapsed ? 'Expand editor' : 'Collapse editor'}
               >
-                <path
-                  d="M10 12L6 8L10 4"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </button>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  style={{ transform: isEditorCollapsed ? 'rotate(180deg)' : 'none' }}
+                >
+                  <path
+                    d="M10 12L6 8L10 4"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            </div>
           </div>
           {!isEditorCollapsed && (
             <div className="editor-content">
-              <Editor value={yaml} onChange={updateYaml} theme={chromeTheme} />
+              <Editor ref={editorRef} value={yaml} onChange={updateYaml} theme={chromeTheme} />
             </div>
           )}
         </div>}
@@ -503,9 +616,25 @@ function App() {
             {error ? (
               <div className="error-banner">{error}</div>
             ) : (
-              <Preview svg={svg} document={document} onSelect={setSelection} />
+              <Preview
+                svg={svg}
+                document={document}
+                onSelect={handleDiagramSelect}
+                onEditIcon={openIconPickerForNode}
+              />
             )}
-            {selection && <DetailsPanel selection={selection} onClose={() => setSelection(null)} />}
+            {selection && (
+              <DetailsPanel
+                selection={selection}
+                anchor={selectionAnchor}
+                onClose={() => {
+                  setSelection(null)
+                  setSelectionAnchor(null)
+                }}
+                onEditIcon={openIconPickerForNode}
+                onUpdateNode={handleNodeUpdate}
+              />
+            )}
           </div>
         </div>
       </main>
@@ -519,6 +648,21 @@ function App() {
         initialValues={themeBuilderValues}
         onClose={() => setIsThemeBuilderOpen(false)}
         onApply={handleThemeBuilderApply}
+      />
+      <IconPickerDialog
+        open={isIconPickerOpen}
+        pack={tablerIconPack}
+        error={iconPackError}
+        targetLabel={selection?.kind === 'node' ? selection.label : undefined}
+        onClose={() => setIsIconPickerOpen(false)}
+        onSelect={(reference) => {
+          if (selection?.kind === 'node') {
+            updateYaml((current) => applyIconToNode(current, selection.id, reference))
+            setSelection({ ...selection, icon: reference })
+            return true
+          }
+          return editorRef.current?.insertIcon(reference) ?? false
+        }}
       />
     </div>
   )

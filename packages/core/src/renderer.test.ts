@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { resolveTheme } from '@traceflow/themes'
+import { tablerIconPack } from '@traceflow/icons/tabler'
 import { computeLayout } from './layout'
 import { render } from './renderer'
 import type { TraceDocument } from './types'
@@ -122,6 +123,9 @@ describe('render', () => {
     expect(svg).toContain('class="trace-group-icon"')
     expect(svg).toContain('Platform swimlane')
     expect(svg).toContain('Shared identity and messaging services')
+    expect(svg).toContain('class="trace-node-icon-target"')
+    expect(svg).toContain('class="trace-node-icon-hit-surface"')
+    expect(svg).toContain('data-icon-reference="lock"')
     expect(svg).toContain('class="trace-node-icon"')
     expect(svg).toContain('&lt;&gt;')
     expect(svg).not.toContain('><></text>')
@@ -145,5 +149,63 @@ describe('render', () => {
     expect(layout.nodes.every((node) => node.height >= 96)).toBe(true)
     expect(svg).toContain('class="trace-node-icon"')
     expect(svg).not.toContain(`fill="${theme.colors.accent}"`)
+  })
+
+  it('composes decisions with a label surface and aligns icon-led card labels', () => {
+    const theme = resolveTheme('editorial')
+    const layout = computeLayout({
+      direction: 'LR',
+      nodes: [
+        { id: 'review', type: 'process', label: 'Review request', icon: 'search' },
+        {
+          id: 'decision',
+          type: 'decision',
+          label: 'Should this request require manual compliance review?',
+          icon: 'help-circle',
+        },
+      ],
+      edges: [{ from: 'review', to: 'decision' }],
+    }, { theme })
+    const svg = render(layout, { theme })
+    const reviewNode = layout.nodes.find((node) => node.id === 'review')!
+    const expectedLabelX = reviewNode.x
+      - reviewNode.width / 2
+      + theme.shapes.nodePadding
+      + theme.shapes.nodeIconSize
+      + Math.max(10, theme.shapes.nodeIconSize * 0.46)
+    const expectedLabelY = reviewNode.y + theme.typography.fontSizeLabel * 0.1
+
+    expect(layout.nodes.find((node) => node.id === 'decision')?.labelLines?.length)
+      .toBeGreaterThan(1)
+    expect(svg).toContain('class="trace-decision-label-surface"')
+    expect(svg).toContain('trace-decision-icon-surface')
+    expect(svg).toContain('class="trace-node-label trace-node-label-process"')
+    expect(svg).toContain('class="trace-node-label trace-node-label-decision"')
+    expect(svg).toContain('text-anchor="start"')
+    expect(svg).toContain(
+      `<tspan x="${expectedLabelX}" y="${expectedLabelY}">Review request</tspan>`
+    )
+  })
+
+  it('renders MIT Tabler names, semantic concepts, and optional full-pack icons', () => {
+    const theme = resolveTheme('editorial')
+    const document: TraceDocument = {
+      nodes: [
+        { id: 'secure', label: 'Secure', icon: 'shield-check' },
+        { id: 'approve', label: 'Approve', icon: 'concept:approval' },
+        { id: 'travel', label: 'Travel', icon: 'tabler:zeppelin' },
+      ],
+      edges: [
+        { from: 'secure', to: 'approve' },
+        { from: 'approve', to: 'travel' },
+      ],
+    }
+    const layout = computeLayout(document, { theme })
+    const svg = render(layout, { theme, iconPacks: [tablerIconPack] })
+
+    expect(svg).toContain('data-icon="tabler:shield-check"')
+    expect(svg).toContain('data-icon="tabler:circle-check"')
+    expect(svg).toContain('data-icon="tabler:zeppelin"')
+    expect(svg).not.toContain('brand-')
   })
 })

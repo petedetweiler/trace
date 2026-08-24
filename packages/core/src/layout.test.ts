@@ -92,12 +92,19 @@ describe('computeLayout', () => {
   it('keeps decision diamonds visually substantial', () => {
     const theme = resolveTheme('editorial')
     const layout = computeLayout({
-      nodes: [{ id: 'decision', label: 'Is this an incident?', type: 'decision', icon: 'help-circle' }],
+      nodes: [{
+        id: 'decision',
+        label: 'Should this request require manual compliance review?',
+        type: 'decision',
+        icon: 'help-circle',
+      }],
       edges: [],
     }, { theme })
 
     expect(layout.nodes[0].height).toBe(150)
     expect(layout.nodes[0].width).toBeGreaterThanOrEqual(160)
+    expect(layout.nodes[0].width).toBeLessThan(240)
+    expect(layout.nodes[0].labelLines?.length).toBeGreaterThan(1)
   })
 
   it('positions groups as non-overlapping swimlanes and keeps members inside them', () => {

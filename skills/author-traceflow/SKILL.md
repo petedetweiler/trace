@@ -30,7 +30,8 @@ Read [references/patterns.md](references/patterns.md) for decisions, retries, or
 - Prefer a meaningful end state over a generic node named `Done`.
 - Use `status` for node state, `emphasis` for hierarchy, and `kind` for edge semantics.
 - Do not invent node types, edge kinds, theme names, or theme-token keys.
-- Use built-in icons (`check`, `clock`, `cloud`, `code`, `globe`, `lock`, `mail`, `user`, `warning`) or a short custom glyph such as one emoji.
+- Prefer semantic icons such as `concept:approval`, `concept:review`, `concept:security`, `concept:shipment`, or `concept:deployment` when the intent matters more than a specific pictogram.
+- Use an exact MIT Tabler name such as `shield-check`, `file-invoice`, or `building-warehouse` when the desired image is clear. Use `text:API` or `emoji:🚚` for intentional glyphs; do not rely on misspelled icon names as fallback text.
 - Keep groups mutually exclusive: every referenced node must exist, and one node cannot belong to multiple groups.
 - Do not manually construct Traceflow share URLs. Use the playground Share action so compression and versioning remain correct.
 

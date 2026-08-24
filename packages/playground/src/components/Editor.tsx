@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
 import { EditorState, Compartment } from '@codemirror/state'
 import { EditorView, keymap, lineNumbers, highlightActiveLine } from '@codemirror/view'
 import { syntaxHighlighting, HighlightStyle } from '@codemirror/language'
@@ -9,6 +9,7 @@ import { autocompletion, type CompletionContext } from '@codemirror/autocomplete
 import { linter, lintGutter, lintKeymap, type Diagnostic } from '@codemirror/lint'
 import type { ResolvedTheme } from '@traceflow/core'
 import { analyzeTraceflowYaml, getTraceflowCompletions } from '../utils/editorSchema'
+import { findIconEditAtPosition } from '../utils/iconAuthoring'
 
 function traceflowCompletions(context: CompletionContext) {
   const result = getTraceflowCompletions(context.state.doc.toString(), context.pos)
@@ -16,7 +17,7 @@ function traceflowCompletions(context: CompletionContext) {
   return {
     from: result.from,
     options: result.options.map((label) => ({ label, type: label.includes(':') ? 'property' : 'enum' })),
-    validFor: /^[\w-]*$/,
+    validFor: /^[\w:-]*$/,
   }
 }
 
@@ -127,11 +128,36 @@ interface EditorProps {
   theme: ResolvedTheme
 }
 
-export default function Editor({ value, onChange, theme }: EditorProps) {
+export interface EditorHandle {
+  insertIcon: (icon: string) => boolean
+}
+
+function replaceIconAtCursor(view: EditorView, icon: string): boolean {
+  const edit = findIconEditAtPosition(
+    view.state.doc.toString(),
+    view.state.selection.main.head,
+    icon
+  )
+  if (!edit) return false
+  view.dispatch({ changes: edit })
+  view.focus()
+  return true
+}
+
+const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(
+  { value, onChange, theme },
+  ref
+) {
   const containerRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
   const themeCompartment = useRef(new Compartment())
   const highlightCompartment = useRef(new Compartment())
+
+  useImperativeHandle(ref, () => ({
+    insertIcon(icon: string) {
+      return viewRef.current ? replaceIconAtCursor(viewRef.current, icon) : false
+    },
+  }), [])
 
   // Initial setup
   useEffect(() => {
@@ -193,4 +219,6 @@ export default function Editor({ value, onChange, theme }: EditorProps) {
   }, [theme])
 
   return <div ref={containerRef} style={{ height: '100%' }} />
-}
+})
+
+export default Editor
