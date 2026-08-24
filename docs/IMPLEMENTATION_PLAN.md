@@ -225,6 +225,10 @@ Addressed vulnerabilities identified in security audit.
 
 - [x] Rendered groups/swimlanes with direction-aware layout
 - [x] Built-in icons and safe custom glyphs
+- [x] MIT-only Tabler icon registry with semantic concepts and legacy aliases
+- [x] Lazy full-catalog visual picker with editor insertion
+- [x] Namespaced icon packs and self-contained SVG rendering
+- [x] Unknown-icon diagnostics and close-match repairs
 - [x] Inline schema diagnostics, contextual autocomplete, and actionable repairs
 - [x] Persistent node/edge descriptions panel
 - [x] Responsive, chrome-free embed links
@@ -240,7 +244,7 @@ Remaining candidates for later milestones:
 
 - Public package and CLI distribution
 - Nested groups and collapsible subflows
-- Extensible SVG icon packs beyond built-ins and custom glyphs
+- Uploaded project-specific SVG packs and organization icon libraries
 - Full Mermaid subgraph/style import
 
 ---

@@ -1,0 +1,48 @@
+{
+  "name": "@traceflow/icons",
+  "version": "0.0.1",
+  "description": "MIT-licensed icon registries for Traceflow diagrams",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./tabler": {
+      "import": "./dist/tabler.js",
+      "types": "./dist/tabler.d.ts"
+    },
+    "./names": {
+      "import": "./dist/names.js",
+      "types": "./dist/names.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "THIRD_PARTY_NOTICES.md"
+  ],
+  "scripts": {
+    "generate": "node scripts/generate-tabler.mjs",
+    "check:license": "node scripts/check-mit-license.mjs",
+    "build": "tsup src/index.ts src/tabler.ts src/names.ts --format esm --dts --splitting",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "icons",
+    "svg",
+    "tabler",
+    "diagrams"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@tabler/icons": "3.46.0",
+    "tsup": "^8.0.1",
+    "typescript": "^5.3.3",
+    "vitest": "^1.1.0"
+  }
+}

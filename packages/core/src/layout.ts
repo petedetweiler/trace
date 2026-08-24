@@ -11,6 +11,15 @@ import type {
   TraceEdge,
   ResolvedTheme,
 } from './types'
+import {
+  APPROXIMATE_GLYPH_WIDTH_RATIO,
+  DECISION_ICON_GAP,
+  DECISION_ICON_SURFACE_SCALE,
+  DECISION_LABEL_MAX_WIDTH,
+  DECISION_LABEL_PADDING_X,
+  DECISION_LABEL_PADDING_Y,
+  estimateTextWidth,
+} from './visualMetrics'
 
 /**
  * Layout options
@@ -39,16 +48,6 @@ const DEFAULTS = {
 }
 
 /**
- * Estimate text width based on character count and font size
- * Uses approximate character width ratio for sans-serif fonts
- */
-function estimateTextWidth(text: string, fontSize: number): number {
-  // Average character width is roughly 0.55 * fontSize for sans-serif
-  const avgCharWidth = fontSize * 0.55
-  return text.length * avgCharWidth
-}
-
-/**
  * Deterministically wrap a node label without requiring browser font metrics.
  * This keeps server-side and browser rendering consistent.
  */
@@ -57,7 +56,10 @@ export function wrapLabel(
   fontSize: number,
   maxTextWidth: number
 ): string[] {
-  const maxCharacters = Math.max(1, Math.floor(maxTextWidth / (fontSize * 0.55)))
+  const maxCharacters = Math.max(
+    1,
+    Math.floor(maxTextWidth / (fontSize * APPROXIMATE_GLYPH_WIDTH_RATIO))
+  )
   const words = label.trim().split(/\s+/).filter(Boolean)
   if (words.length === 0) return ['']
 
@@ -455,23 +457,35 @@ export function computeLayout(doc: TraceDocument, options: LayoutOptions = {}): 
   const labelLinesById = new Map<string, string[]>()
   for (const node of doc.nodes) {
     const useInlineIcon = Boolean(node.icon) && node.type !== 'decision' && nodeIconPosition === 'left'
-    const iconGap = node.icon ? Math.max(8, nodeIconSize * 0.42) : 0
+    const iconGap = node.icon ? Math.max(10, nodeIconSize * 0.46) : 0
     const inlineIconWidth = useInlineIcon ? nodeIconSize + iconGap : 0
-    const maxTextWidth = Math.max(
+    const availableTextWidth = Math.max(
       fontSize,
       nodeMaxWidth - nodePadding * 2 - inlineIconWidth
     )
+    const maxTextWidth = node.type === 'decision'
+      ? Math.min(availableTextWidth, DECISION_LABEL_MAX_WIDTH)
+      : availableTextWidth
     const labelLines = wrapLabel(node.label, fontSize, maxTextWidth)
     const textWidth = Math.max(...labelLines.map((line) => estimateTextWidth(line, fontSize)))
-    const horizontalPadding = nodePadding * 2
+    const horizontalPadding = node.type === 'decision'
+      ? DECISION_LABEL_PADDING_X * 2 + nodePadding
+      : nodePadding * 2
     const calculatedWidth = textWidth + horizontalPadding + inlineIconWidth
     const width = Math.max(nodeMinWidth, Math.min(nodeMaxWidth, calculatedWidth))
     const baseHeight = node.type === 'decision'
       ? Math.max(decisionNodeHeight, Math.min(width, 150))
       : nodeMinHeight
     const lineHeight = fontSize * 1.35
+    const labelHeight = labelLines.length * lineHeight
     const iconHeight = node.icon && !useInlineIcon ? nodeIconSize + iconGap : 0
-    const contentHeight = labelLines.length * lineHeight + iconHeight + nodePadding * 2
+    const decisionLabelHeight = labelHeight + DECISION_LABEL_PADDING_Y * 2
+    const decisionIconHeight = node.icon
+      ? nodeIconSize * DECISION_ICON_SURFACE_SCALE + DECISION_ICON_GAP
+      : 0
+    const contentHeight = node.type === 'decision'
+      ? decisionLabelHeight + decisionIconHeight + nodePadding
+      : labelHeight + iconHeight + nodePadding * 2
     const height = Math.max(baseHeight, contentHeight)
     labelLinesById.set(node.id, labelLines)
 

@@ -61,7 +61,7 @@
         "icon": {
           "type": "string",
           "maxLength": 200,
-          "description": "Built-in icon name or a short custom glyph such as an emoji."
+          "description": "MIT Tabler icon name, namespaced tabler:name reference, concept:name shortcut, or explicit text:/emoji: glyph."
         },
         "emphasis": { "enum": ["low", "normal", "high"], "default": "normal" },
         "status": { "enum": ["default", "success", "warning", "error"], "default": "default" }
@@ -93,7 +93,11 @@
         "id": { "type": "string", "minLength": 1, "maxLength": 200 },
         "label": { "type": "string", "minLength": 1, "maxLength": 200 },
         "description": { "type": "string", "maxLength": 1000 },
-        "icon": { "type": "string", "maxLength": 200 },
+        "icon": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "MIT Tabler icon name, semantic concept, or explicit text:/emoji: glyph."
+        },
         "nodes": {
           "type": "array",
           "minItems": 1,

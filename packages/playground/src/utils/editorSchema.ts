@@ -1,4 +1,6 @@
 import { parse, validate } from '@traceflow/core'
+import { conceptIconMap, iconAliasMap } from '@traceflow/icons'
+import { tablerIconNames } from '@traceflow/icons/names'
 
 export interface EditorRepair {
   label: string
@@ -130,6 +132,27 @@ export function analyzeTraceflowYaml(source: string): EditorDiagnostic[] {
         repair: { label: 'Add schema version', from: 0, to: 0, insert: 'version: 1\n' },
       })
     }
+    const iconValues = [
+      ...document.nodes.map((node, index) => ({ value: node.icon, path: `nodes[${index}].icon` })),
+      ...(document.groups ?? []).map((group, index) => ({ value: group.icon, path: `groups[${index}].icon` })),
+    ]
+    for (const { value, path } of iconValues) {
+      if (!value || isKnownIconReference(value)) continue
+      const line = lineRangeForPath(source, path)
+      if (!line) continue
+      const range = iconValueRange(line)
+      const suggestion = closestIconReference(value)
+      diagnostics.push({
+        ...range,
+        severity: 'warning',
+        message: suggestion
+          ? `Unknown icon "${value}". Did you mean "${suggestion}"?`
+          : `Unknown icon "${value}". Browse the MIT Tabler catalog or use text:/emoji:.`,
+        repair: suggestion
+          ? { label: `Use ${suggestion}`, ...range, insert: suggestion }
+          : undefined,
+      })
+    }
     return diagnostics
   } catch (error) {
     const range = parserPosition(source, error)
@@ -139,6 +162,68 @@ export function analyzeTraceflowYaml(source: string): EditorDiagnostic[] {
       message: error instanceof Error ? error.message : 'Invalid YAML',
     }]
   }
+}
+
+const TABLER_ICON_NAMES = new Set(tablerIconNames)
+const ICON_CONCEPTS = Object.keys(conceptIconMap)
+const ICON_ALIASES = new Set(Object.keys(iconAliasMap))
+
+function isKnownIconReference(value: string): boolean {
+  const raw = value.trim()
+  const lower = raw.toLowerCase()
+  if (/^(emoji|text):.+/i.test(raw)) return true
+  if (/^concept:([a-z0-9-]+)$/i.test(lower)) {
+    return ICON_CONCEPTS.includes(lower.slice('concept:'.length))
+  }
+  const tablerMatch = /^tabler:([a-z0-9-]+)$/i.exec(lower)
+  if (tablerMatch) return TABLER_ICON_NAMES.has(tablerMatch[1])
+  if (TABLER_ICON_NAMES.has(lower) || ICON_ALIASES.has(lower)) return true
+  return !raw.includes(':') && Array.from(raw).length <= 3
+}
+
+function iconValueRange(line: SourceLine): { from: number; to: number } {
+  const colon = line.text.indexOf(':')
+  const value = line.text.slice(colon + 1)
+  const leadingWhitespace = value.length - value.trimStart().length
+  return {
+    from: line.from + colon + 1 + leadingWhitespace,
+    to: line.to,
+  }
+}
+
+function editDistance(left: string, right: string): number {
+  const row = Array.from({ length: right.length + 1 }, (_, index) => index)
+  for (let leftIndex = 1; leftIndex <= left.length; leftIndex += 1) {
+    let previous = row[0]
+    row[0] = leftIndex
+    for (let rightIndex = 1; rightIndex <= right.length; rightIndex += 1) {
+      const current = row[rightIndex]
+      row[rightIndex] = left[leftIndex - 1] === right[rightIndex - 1]
+        ? previous
+        : Math.min(previous, row[rightIndex - 1], current) + 1
+      previous = current
+    }
+  }
+  return row[right.length]
+}
+
+function closestIconReference(value: string): string | null {
+  const lower = value.trim().toLowerCase()
+  const namespace = lower.startsWith('tabler:') ? 'tabler:' : ''
+  const needle = namespace ? lower.slice(namespace.length) : lower
+  const conceptNamespace = lower.startsWith('concept:')
+  const candidates = conceptNamespace
+    ? ICON_CONCEPTS.map((name) => `concept:${name}`)
+    : tablerIconNames
+  let best: { value: string; distance: number } | null = null
+  for (const candidate of candidates) {
+    const candidateNeedle = conceptNamespace ? candidate : candidate.toLowerCase()
+    const distance = editDistance(conceptNamespace ? lower : needle, candidateNeedle)
+    if (!best || distance < best.distance) best = { value: `${namespace}${candidate}`, distance }
+    if (distance === 1) break
+  }
+  const threshold = Math.max(2, Math.floor(needle.length * 0.3))
+  return best && best.distance <= threshold ? best.value : null
 }
 
 const VALUE_COMPLETIONS: Record<string, string[]> = {
@@ -151,10 +236,10 @@ const VALUE_COMPLETIONS: Record<string, string[]> = {
   mode: ['system', 'light', 'dark'],
   theme: ['editorial', 'werkstatt', 'blueprint', 'terminal', 'nocturne'],
   icon: [
-    'bell', 'box', 'check', 'checklist', 'clock', 'cloud', 'code', 'credit-card',
-    'file-text', 'git-branch', 'globe', 'help-circle', 'inbox', 'lock', 'mail',
-    'package', 'package-search', 'search', 'server', 'settings', 'shopping-cart',
-    'truck', 'user', 'warning', 'wrench', 'x',
+    ...ICON_CONCEPTS.map((name) => `concept:${name}`),
+    'text:API',
+    'emoji:🚚',
+    ...tablerIconNames,
   ],
   curveStyle: ['bezier', 'orthogonal', 'organic'],
   gridStyle: ['dots', 'lines', 'blueprint'],
@@ -184,7 +269,7 @@ export interface SchemaCompletionContext {
 export function getTraceflowCompletions(source: string, position: number): SchemaCompletionContext | null {
   const lineStart = source.lastIndexOf('\n', Math.max(0, position - 1)) + 1
   const linePrefix = source.slice(lineStart, position)
-  const valueMatch = /(?:^|\s)(direction|type|status|emphasis|kind|style|mode|theme|icon|curveStyle|gridStyle):\s*([\w-]*)$/.exec(linePrefix)
+  const valueMatch = /(?:^|\s)(direction|type|status|emphasis|kind|style|mode|theme|icon|curveStyle|gridStyle):\s*([\w:-]*)$/.exec(linePrefix)
   if (valueMatch) {
     return {
       from: position - valueMatch[2].length,

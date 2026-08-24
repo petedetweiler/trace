@@ -6,7 +6,8 @@ import Tooltip from './Tooltip'
 interface PreviewProps {
   svg: string | null
   document: TraceDocument | null
-  onSelect?: (selection: DiagramSelection) => void
+  onSelect?: (selection: DiagramSelection, anchor: DiagramSelectionAnchor) => void
+  onEditIcon?: (selection: NodeDiagramSelection, anchor: DiagramSelectionAnchor) => void
 }
 
 export type DiagramSelection = {
@@ -26,6 +27,19 @@ export type DiagramSelection = {
   to: string
   edgeKind?: EdgeKind
   style?: EdgeStyle
+}
+
+export type NodeDiagramSelection = Extract<DiagramSelection, { kind: 'node' }>
+
+export interface DiagramSelectionAnchor {
+  left: number
+  top: number
+  right: number
+  bottom: number
+  centerX: number
+  centerY: number
+  containerWidth: number
+  containerHeight: number
 }
 
 interface ViewBoxState {
@@ -53,6 +67,7 @@ function sanitizeSvg(svg: string): string {
       'aria-label',
       'data-id',
       'data-index',
+      'data-icon-reference',
       'data-type',
       'data-from',
       'data-to',
@@ -71,7 +86,7 @@ function writeViewBox(svg: SVGSVGElement, viewBox: ViewBoxState): void {
   svg.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`)
 }
 
-export default function Preview({ svg, document, onSelect }: PreviewProps) {
+export default function Preview({ svg, document, onSelect, onEditIcon }: PreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const viewportApiRef = useRef<ViewportApi | null>(null)
   const [tooltip, setTooltip] = useState<{
@@ -163,6 +178,11 @@ export default function Preview({ svg, document, onSelect }: PreviewProps) {
 
     const handlePointerDown = (event: PointerEvent) => {
       if (event.button !== 0) return
+      const target = event.target as Element | null
+      // Nodes and edges have their own click actions. Starting a pan gesture
+      // from them makes ordinary trackpad clicks easy to misclassify as a
+      // drag, especially on the relatively small icon targets.
+      if (target?.closest('.trace-node, .trace-edge')) return
       activePointerId = event.pointerId
       lastPointer = { x: event.clientX, y: event.clientY }
       svgElement.setPointerCapture(event.pointerId)
@@ -218,11 +238,15 @@ export default function Preview({ svg, document, onSelect }: PreviewProps) {
 
     const nodeMap = new Map(document.nodes.map((node) => [node.id, node]))
 
-    const getDescription = (target: Element): string | undefined => {
+    const getTooltipContent = (target: Element): string | undefined => {
       const nodeElement = target.closest('.trace-node')
       if (nodeElement) {
         const nodeId = nodeElement.getAttribute('data-id')
-        return nodeId ? nodeMap.get(nodeId)?.description : undefined
+        const node = nodeId ? nodeMap.get(nodeId) : undefined
+        if (target.closest('.trace-node-icon-target') && node) {
+          return `Change icon for ${node.label}`
+        }
+        return node?.description
       }
 
       const edgeElement = target.closest('.trace-edge')
@@ -251,9 +275,31 @@ export default function Preview({ svg, document, onSelect }: PreviewProps) {
       } : null
     }
 
+    const getSelectionAnchor = (target: Element): DiagramSelectionAnchor | null => {
+      const selectedElement = target.closest('.trace-node, .trace-edge')
+      const host = container.closest('.preview-content')
+      if (!selectedElement || !host) return null
+      const selectedRect = selectedElement.getBoundingClientRect()
+      const hostRect = host.getBoundingClientRect()
+      const left = selectedRect.left - hostRect.left
+      const top = selectedRect.top - hostRect.top
+      const right = selectedRect.right - hostRect.left
+      const bottom = selectedRect.bottom - hostRect.top
+      return {
+        left,
+        top,
+        right,
+        bottom,
+        centerX: (left + right) / 2,
+        centerY: (top + bottom) / 2,
+        containerWidth: hostRect.width,
+        containerHeight: hostRect.height,
+      }
+    }
+
     const showTooltip = (target: Element, x: number, y: number) => {
-      const description = getDescription(target)
-      setTooltip(description ? { content: description, x, y } : null)
+      const content = getTooltipContent(target)
+      setTooltip(content ? { content, x, y } : null)
     }
 
     const handleMouseOver = (event: MouseEvent) => {
@@ -275,15 +321,29 @@ export default function Preview({ svg, document, onSelect }: PreviewProps) {
     }
     const handleFocusOut = () => setTooltip(null)
     const handleClick = (event: MouseEvent) => {
-      const selection = getSelection(event.target as Element)
-      if (selection) onSelect?.(selection)
+      const target = event.target as Element
+      const selection = getSelection(target)
+      const anchor = getSelectionAnchor(target)
+      if (!selection || !anchor) return
+      if (
+        selection.kind === 'node'
+        && target.closest('.trace-node-icon-target')
+        && onEditIcon
+      ) {
+        event.preventDefault()
+        onEditIcon(selection, anchor)
+        return
+      }
+      onSelect?.(selection, anchor)
     }
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Enter' && event.key !== ' ') return
-      const selection = getSelection(event.target as Element)
-      if (!selection) return
+      const target = event.target as Element
+      const selection = getSelection(target)
+      const anchor = getSelectionAnchor(target)
+      if (!selection || !anchor) return
       event.preventDefault()
-      onSelect?.(selection)
+      onSelect?.(selection, anchor)
     }
 
     container.addEventListener('mouseover', handleMouseOver)
@@ -303,7 +363,7 @@ export default function Preview({ svg, document, onSelect }: PreviewProps) {
       container.removeEventListener('click', handleClick)
       container.removeEventListener('keydown', handleKeyDown)
     }
-  }, [document, onSelect, sanitizedSvg])
+  }, [document, onEditIcon, onSelect, sanitizedSvg])
 
   const zoomIn = useCallback(() => viewportApiRef.current?.zoomBy(1.25), [])
   const zoomOut = useCallback(() => viewportApiRef.current?.zoomBy(1 / 1.25), [])

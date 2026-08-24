@@ -13,6 +13,21 @@ export type { RenderOptions } from './renderer'
 export { escapeXml, escapeXmlAttr, sanitizeId } from './escape'
 export * from './types'
 
+export {
+  conceptIconMap,
+  iconAliasMap,
+  resolveIconReference,
+  tablerEssentialPack,
+} from '@traceflow/icons'
+export type {
+  IconCatalogEntry,
+  IconDefinition,
+  IconElement,
+  IconPack,
+  IconRegistry,
+  ResolvedIconReference,
+} from '@traceflow/icons'
+
 // Re-export commonly used theme functions from @traceflow/themes
 export {
   resolveTheme,

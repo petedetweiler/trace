@@ -27,7 +27,9 @@ Required properties: `id`, `label`.
 | `description` | String, maximum 1,000 characters |
 | `emphasis` | `low`, `normal`, `high` |
 | `status` | `default`, `success`, `warning`, `error` |
-| `icon` | Built-in name (for example `bell`, `check`, `file-text`, `help-circle`, `search`, `wrench`) or short custom glyph |
+| `icon` | MIT Tabler name (`shield-check`), namespaced name (`tabler:shield-check`), semantic shortcut (`concept:approval`), or explicit glyph (`text:API`, `emoji:🚚`) |
+
+Traceflow bundles a curated set of workflow icons and supports the complete non-brand Tabler catalog when the full icon pack is available. Prefer `concept:*` for AI-authored process intent and exact Tabler names when a particular pictogram is required. Unknown names should be repaired rather than treated as implicit text.
 
 Use node types semantically:
 

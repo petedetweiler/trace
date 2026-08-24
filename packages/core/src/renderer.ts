@@ -1,7 +1,17 @@
 // SVG renderer for Trace diagrams
 
 import type { LayoutResult, PositionedNode, Point, ResolvedTheme } from './types'
+import { resolveIconReference, type IconDefinition, type IconPack } from '@traceflow/icons'
 import { escapeXml, escapeXmlAttr, sanitizeId } from './escape'
+import {
+  DECISION_ICON_GAP,
+  DECISION_ICON_RENDER_SCALE,
+  DECISION_ICON_SURFACE_SCALE,
+  DECISION_LABEL_PADDING_X,
+  DECISION_LABEL_PADDING_Y,
+  INLINE_LABEL_OPTICAL_OFFSET_RATIO,
+  estimateTextWidth,
+} from './visualMetrics'
 
 /**
  * Render options
@@ -9,6 +19,8 @@ import { escapeXml, escapeXmlAttr, sanitizeId } from './escape'
 export interface RenderOptions {
   /** Resolved theme for styling */
   theme?: ResolvedTheme
+  /** Optional icon packs searched before Traceflow's bundled essentials. */
+  iconPacks?: readonly IconPack[]
 }
 
 /**
@@ -335,33 +347,39 @@ function getNodeShape(
   }
 }
 
-const BUILTIN_ICONS: Record<string, string> = {
-  bell: '<path d="M3 11.5h10l-1.2-1.7V7a3.8 3.8 0 0 0-7.6 0v2.8L3 11.5Z"/><path d="M6.5 13.2a1.8 1.8 0 0 0 3 0"/>',
-  box: '<path d="m8 1.8 5.5 3v6.4L8 14.2l-5.5-3V4.8L8 1.8Z"/><path d="m2.7 4.9 5.3 3 5.3-3M8 7.9v6"/>',
-  check: '<path d="M3 8.5 6.5 12 13 4"/>',
-  checklist: '<rect x="2.5" y="1.8" width="11" height="12.4" rx="1.5"/><path d="m5 6 1.2 1.2L8.4 5M5 10l1.2 1.2L8.4 9M10 6h1M10 10h1"/>',
-  clock: '<circle cx="8" cy="8" r="6"/><path d="M8 4.5V8L10.5 9.5"/>',
-  cloud: '<path d="M4.5 12.5h7a3 3 0 0 0 .3-6A4 4 0 0 0 4.2 5.5a3.5 3.5 0 0 0 .3 7Z"/>',
-  code: '<path d="m5.5 4-4 4 4 4M10.5 4l4 4-4 4M9 2 7 14"/>',
-  'credit-card': '<rect x="1.5" y="3" width="13" height="10" rx="1.7"/><path d="M1.5 6.2h13M4 10h2"/>',
-  'file-text': '<path d="M4 1.5h5l3 3V14H4V1.5Z"/><path d="M9 1.5V5h3M6 8h4M6 10.5h4"/>',
-  'git-branch': '<circle cx="4" cy="3" r="1.5"/><circle cx="12" cy="5" r="1.5"/><circle cx="4" cy="13" r="1.5"/><path d="M4 4.5v7M5.5 6.5H8A4 4 0 0 0 12 5"/>',
-  globe: '<circle cx="8" cy="8" r="6"/><path d="M2 8h12M8 2c2 2 2 10 0 12M8 2C6 4 6 12 8 14"/>',
-  'help-circle': '<circle cx="8" cy="8" r="6"/><path d="M6.3 6.1A1.9 1.9 0 1 1 9 7.8c-.8.4-1 1-1 1.7M8 12h.01"/>',
-  inbox: '<path d="M2 3h12v9H2V3Z"/><path d="M2 8h3l1.4 2h3.2L11 8h3"/>',
-  lock: '<rect x="3" y="7" width="10" height="7" rx="2"/><path d="M5 7V5a3 3 0 0 1 6 0v2"/>',
-  mail: '<rect x="2" y="3.5" width="12" height="9" rx="2"/><path d="m3 5 5 4 5-4"/>',
-  package: '<path d="m8 1.8 5.5 3v6.4L8 14.2l-5.5-3V4.8L8 1.8Z"/><path d="m2.7 4.9 5.3 3 5.3-3M8 7.9v6M5.3 3.3l5.4 3"/>',
-  'package-search': '<path d="m7 1.8 5 2.7v4.1M7 7.4 2 4.6v5.7l3.2 1.8M2.2 4.7 7 2l4.8 2.7M7 7.4v2"/><circle cx="10.8" cy="11" r="2.3"/><path d="m12.5 12.7 1.7 1.7"/>',
-  search: '<circle cx="7" cy="7" r="4.7"/><path d="m10.6 10.6 3.2 3.2"/>',
-  server: '<rect x="2" y="2" width="12" height="5" rx="1.2"/><rect x="2" y="9" width="12" height="5" rx="1.2"/><path d="M4.5 4.5h.01M4.5 11.5h.01M7 4.5h5M7 11.5h5"/>',
-  settings: '<circle cx="8" cy="8" r="2.2"/><path d="M8 1.5v1.4M8 13.1v1.4M1.5 8h1.4M13.1 8h1.4M3.4 3.4l1 1M11.6 11.6l1 1M12.6 3.4l-1 1M4.4 11.6l-1 1"/>',
-  'shopping-cart': '<path d="M1.5 2.5h2l1.3 7.1h7.5l1.4-5H4"/><circle cx="6" cy="12.7" r="1"/><circle cx="11.5" cy="12.7" r="1"/>',
-  truck: '<path d="M1.5 3h8v8h-8V3ZM9.5 6h2.3l2.7 2.7V11h-5V6Z"/><circle cx="4.2" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/>',
-  user: '<circle cx="8" cy="5" r="3"/><path d="M2.5 14a5.5 5.5 0 0 1 11 0"/>',
-  warning: '<path d="M8 2 15 14H1L8 2Z"/><path d="M8 6v4M8 12v.2"/>',
-  wrench: '<path d="M9.7 2.2a3.5 3.5 0 0 0-4.2 4.5L2 10.2a2.1 2.1 0 1 0 3 3l3.5-3.5a3.5 3.5 0 0 0 4.5-4.2l-2 2-2.5-2.5 2-2Z"/>',
-  x: '<circle cx="8" cy="8" r="6"/><path d="m5.5 5.5 5 5M10.5 5.5l-5 5"/>',
+const ICON_ELEMENT_ATTRIBUTES: Readonly<Record<string, readonly string[]>> = {
+  path: ['d', 'fill', 'opacity', 'stroke'],
+  circle: ['cx', 'cy', 'r', 'fill', 'opacity', 'stroke'],
+  rect: ['x', 'y', 'width', 'height', 'rx', 'ry', 'fill', 'opacity', 'stroke'],
+  line: ['x1', 'y1', 'x2', 'y2', 'opacity', 'stroke'],
+  polyline: ['points', 'fill', 'opacity', 'stroke'],
+  polygon: ['points', 'fill', 'opacity', 'stroke'],
+  ellipse: ['cx', 'cy', 'rx', 'ry', 'fill', 'opacity', 'stroke'],
+}
+
+function safeIconAttribute(name: string, value: string): string | null {
+  if (name === 'fill' || name === 'stroke') {
+    return value === 'none' || value === 'currentColor' ? value : null
+  }
+  if (name === 'opacity') {
+    const opacity = Number(value)
+    return Number.isFinite(opacity) && opacity >= 0 && opacity <= 1 ? String(opacity) : null
+  }
+  return value
+}
+
+function renderIconDefinition(definition: IconDefinition): string {
+  return definition.elements.map(([name, attributes]) => {
+    const allowed = ICON_ELEMENT_ATTRIBUTES[name] ?? []
+    const renderedAttributes = Object.entries(attributes)
+      .flatMap(([attributeName, rawValue]) => {
+        if (!allowed.includes(attributeName)) return []
+        const value = safeIconAttribute(attributeName, rawValue)
+        return value === null ? [] : [`${attributeName}="${escapeXmlAttr(value)}"`]
+      })
+      .join(' ')
+    return `<${name}${renderedAttributes ? ` ${renderedAttributes}` : ''} />`
+  }).join('')
 }
 
 function renderIcon(
@@ -370,26 +388,30 @@ function renderIcon(
   centerY: number,
   size: number,
   color: string,
-  className: string = 'trace-node-icon'
+  className: string = 'trace-node-icon',
+  iconPacks: readonly IconPack[] = []
 ): string {
-  if (!icon) return ''
-  const iconName = icon.trim().toLowerCase()
-  const builtIn = BUILTIN_ICONS[iconName]
-  if (builtIn) {
-    const scale = size / 16
+  const resolved = resolveIconReference(icon, iconPacks)
+  if (!resolved) return ''
+  if (resolved.kind === 'icon') {
+    const scale = size / 24
     return `<g
       class="${className}"
+      data-icon="${escapeXmlAttr(`${resolved.pack.prefix}:${resolved.name}`)}"
       transform="translate(${centerX - size / 2} ${centerY - size / 2}) scale(${scale})"
       fill="none"
       stroke="${escapeXmlAttr(color)}"
-      stroke-width="1.25"
+      color="${escapeXmlAttr(color)}"
+      stroke-width="1.75"
       stroke-linecap="round"
       stroke-linejoin="round"
       aria-hidden="true"
-    >${builtIn}</g>`
+    >${renderIconDefinition(resolved.definition)}</g>`
   }
 
-  const glyph = Array.from(icon.trim()).slice(0, 2).join('')
+  const glyph = resolved.kind === 'glyph'
+    ? resolved.value
+    : Array.from(resolved.value.trim()).slice(0, 2).join('')
   return `<text
     class="${className} ${className}-glyph"
     x="${centerX}"
@@ -398,7 +420,7 @@ function renderIcon(
     dominant-baseline="middle"
     fill="${escapeXmlAttr(color)}"
     font-family="system-ui, sans-serif"
-    font-size="${size * 0.82}"
+    font-size="${size * (glyph.length > 2 ? 0.62 : 0.82)}"
     aria-hidden="true"
   >${escapeXml(glyph)}</text>`
 }
@@ -426,7 +448,7 @@ function compactText(value: string | undefined, limit: number): string {
  */
 export function render(layout: LayoutResult, options: RenderOptions = {}): string {
   const { nodes, edges, groups = [], width, height, title, description, direction } = layout
-  const { theme } = options
+  const { theme, iconPacks = [] } = options
 
   // Extract theme values or use defaults
   const colors = {
@@ -510,7 +532,7 @@ export function render(layout: LayoutResult, options: RenderOptions = {}): strin
             fill-opacity="${theme?.mode === 'dark' ? 0.42 : 0.68}"
           />
           <line x1="${left + railSize}" y1="${top}" x2="${left + railSize}" y2="${top + group.height}" stroke="${escapeXmlAttr(color)}" stroke-opacity="0.6"/>
-          ${renderIcon(group.icon, left + railSize / 2, top + 22, 18, colors.accent, 'trace-group-icon')}
+          ${renderIcon(group.icon, left + railSize / 2, top + 22, 18, colors.accent, 'trace-group-icon', iconPacks)}
           <g transform="translate(${left + railSize / 2} ${group.y + (group.icon ? 8 : 0)}) rotate(-90)">
             <text
               text-anchor="middle"
@@ -540,7 +562,7 @@ export function render(layout: LayoutResult, options: RenderOptions = {}): strin
             fill-opacity="${theme?.mode === 'dark' ? 0.42 : 0.68}"
           />
           <line x1="${left}" y1="${top + railSize}" x2="${left + group.width}" y2="${top + railSize}" stroke="${escapeXmlAttr(color)}" stroke-opacity="0.6"/>
-          ${renderIcon(group.icon, left + 22, top + railSize / 2, 18, colors.accent, 'trace-group-icon')}
+          ${renderIcon(group.icon, left + 22, top + railSize / 2, 18, colors.accent, 'trace-group-icon', iconPacks)}
           <text
             x="${left + (group.icon ? 42 : 16)}"
             y="${top + (groupDescription ? railSize / 2 - 7 : railSize / 2)}"
@@ -738,29 +760,56 @@ export function render(layout: LayoutResult, options: RenderOptions = {}): strin
       // Sanitize ID and escape label for safe SVG output
       const nodeId = sanitizeId(node.id)
       const nodeType = escapeXmlAttr(node.type ?? 'process')
+      const isDecision = node.type === 'decision'
       const labelLines = node.labelLines?.length ? node.labelLines : [node.label]
       const lineHeight = typography.fontSizeLabel * 1.35
-      const iconGap = node.icon ? Math.max(8, shapes.nodeIconSize * 0.42) : 0
+      const iconGap = node.icon ? Math.max(10, shapes.nodeIconSize * 0.46) : 0
       const useInlineIcon = Boolean(node.icon)
-        && node.type !== 'decision'
+        && !isDecision
         && shapes.nodeIconPosition === 'left'
       const iconBlockHeight = node.icon && !useInlineIcon
         ? shapes.nodeIconSize + iconGap
         : 0
       const contentHeight = iconBlockHeight + labelLines.length * lineHeight
       const contentTop = node.y - contentHeight / 2
+      const decisionLabelWidth = Math.min(
+        node.width - 16,
+        Math.max(
+          54,
+          ...labelLines.map((line) => estimateTextWidth(line, typography.fontSizeLabel)
+            + DECISION_LABEL_PADDING_X * 2)
+        )
+      )
+      const decisionLabelHeight = labelLines.length * lineHeight + DECISION_LABEL_PADDING_Y * 2
+      const decisionIconSurfaceSize = shapes.nodeIconSize * DECISION_ICON_SURFACE_SCALE
+      const decisionContentHeight = decisionLabelHeight + (node.icon
+        ? decisionIconSurfaceSize + DECISION_ICON_GAP
+        : 0)
+      const decisionContentTop = node.y - decisionContentHeight / 2
+      const decisionLabelTop = decisionContentTop + (node.icon
+        ? decisionIconSurfaceSize + DECISION_ICON_GAP
+        : 0)
       const iconCenterX = useInlineIcon
         ? node.x - node.width / 2 + shapes.nodePadding + shapes.nodeIconSize / 2
         : node.x
-      const iconCenterY = useInlineIcon
-        ? node.y
-        : contentTop + shapes.nodeIconSize / 2
+      const iconCenterY = isDecision
+        ? decisionContentTop + decisionIconSurfaceSize / 2
+        : useInlineIcon
+          ? node.y
+          : contentTop + shapes.nodeIconSize / 2
       const labelX = useInlineIcon
-        ? node.x + (shapes.nodeIconSize + iconGap) / 2
+        ? node.x - node.width / 2 + shapes.nodePadding + shapes.nodeIconSize + iconGap
         : node.x
-      const lineStartY = useInlineIcon
-        ? node.y - ((labelLines.length - 1) * lineHeight) / 2
-        : contentTop + iconBlockHeight + lineHeight / 2
+      const labelAnchor = useInlineIcon ? 'start' : 'middle'
+      const inlineLabelOpticalOffset = typography.fontSizeLabel
+        * INLINE_LABEL_OPTICAL_OFFSET_RATIO
+      const lineStartY = isDecision
+        ? decisionLabelTop + DECISION_LABEL_PADDING_Y + lineHeight / 2
+        : useInlineIcon
+          ? node.y
+            - ((labelLines.length - 1) * lineHeight) / 2
+            + inlineLabelOpticalOffset
+          : contentTop + iconBlockHeight + lineHeight / 2
       const nodeLabel = labelLines
         .map((line, lineIndex) => `<tspan x="${labelX}" y="${lineStartY + lineIndex * lineHeight}">${escapeXml(line)}</tspan>`)
         .join('')
@@ -799,11 +848,50 @@ export function render(layout: LayoutResult, options: RenderOptions = {}): strin
           ${filterAttr}
         />
         ${databaseDetail}
-        ${renderIcon(node.icon, iconCenterX, iconCenterY, shapes.nodeIconSize, iconColor)}
+        ${isDecision ? `
+        <rect
+          class="trace-decision-label-surface"
+          x="${node.x - decisionLabelWidth / 2}"
+          y="${decisionLabelTop}"
+          width="${decisionLabelWidth}"
+          height="${decisionLabelHeight}"
+          rx="${Math.max(3, Math.min(8, shapes.nodeCornerRadius + 4))}"
+          fill="${colors.background}"
+          stroke="${stroke}"
+          stroke-width="${Math.max(0.75, shapes.nodeBorderWidth * 0.8)}"
+          stroke-opacity="${theme?.mode === 'dark' ? 0.58 : 0.3}"
+        />
+        ` : ''}
+        ${node.icon ? `<g
+          class="trace-node-icon-target"
+          data-icon-reference="${escapeXmlAttr(node.icon)}"
+        >
+          <circle
+            class="trace-node-icon-hit-surface${isDecision ? ' trace-decision-icon-surface' : ''}"
+            cx="${iconCenterX}"
+            cy="${iconCenterY}"
+            r="${isDecision
+              ? decisionIconSurfaceSize / 2
+              : Math.max(14, shapes.nodeIconSize * 0.68)}"
+            fill="${isDecision ? colors.background : 'transparent'}"
+            stroke="${isDecision ? stroke : 'transparent'}"
+            stroke-width="${Math.max(1, shapes.nodeBorderWidth)}"
+          />
+          ${renderIcon(
+            node.icon,
+            iconCenterX,
+            iconCenterY,
+            isDecision ? shapes.nodeIconSize * DECISION_ICON_RENDER_SCALE : shapes.nodeIconSize,
+            iconColor,
+            'trace-node-icon',
+            iconPacks
+          )}
+        </g>` : ''}
         <text
+          class="trace-node-label trace-node-label-${nodeType}"
           x="${labelX}"
           y="${node.y}"
-          text-anchor="middle"
+          text-anchor="${labelAnchor}"
           dominant-baseline="middle"
           fill="${textColor}"
           font-family="${escapeXmlAttr(typography.fontFamily)}"

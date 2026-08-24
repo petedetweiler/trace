@@ -18,8 +18,9 @@ Traceflow is a diagram library designed for the AI era. Describe your flowchart 
 - **Responsive viewport** — Fit-to-view, pan, zoom, and keyboard-accessible diagrams
 - **AI authoring skill** — Generate reliable Traceflow YAML from plain-language processes
 - **Shareable diagrams** — Compressed editable and presentation links with no backend
-- **Swimlanes and icons** — Group ownership or phases and add built-in or custom glyphs
+- **MIT icon system** — 148 workflow essentials, 4,754 searchable Tabler icons, and semantic concepts
 - **Schema-aware editor** — Inline diagnostics, autocomplete, and one-click repairs
+- **Visual node inspector** — Edit labels, descriptions, types, statuses, emphasis, and icons from the rendered canvas
 - **Import and customize** — Mermaid flowchart import and a visual theme builder
 - **Responsive embeds** — Lightweight read-only links for docs and blogs
 - **Security hardened** — XSS protection, DoS limits, prototype pollution guards
@@ -160,9 +161,49 @@ if (valid) {
 | `label` | string | Display text (required) |
 | `type` | string | Shape: `start`, `end`, `process`, `decision`, `database`, `external`, `manual`, `delay` |
 | `description` | string | Tooltip text |
-| `icon` | string | Built-in icon name or short custom glyph/emoji |
+| `icon` | string | MIT Tabler name, semantic concept, or explicit text/emoji glyph |
 | `emphasis` | `low` \| `normal` \| `high` | Visual prominence |
 | `status` | `default` \| `success` \| `warning` \| `error` | Color treatment |
+
+### Icons
+
+Traceflow ships 148 commonly useful Tabler icons in its default, self-contained renderer. The playground's **Icons** browser lazy-loads the complete 4,754-icon non-brand catalog and inserts the selected reference at the current node or group. Click a rendered node icon to open the picker directly for that node; selecting any node also exposes a keyboard-accessible **Choose icon** or **Change icon** action in its details panel. Tabler Icons and Traceflow's icon packages are MIT licensed; brand icons are intentionally excluded.
+
+```yaml
+nodes:
+  - id: exact
+    label: Validate supplier
+    icon: shield-check
+
+  - id: semantic
+    label: Request approval
+    icon: concept:approval
+
+  - id: namespaced
+    label: Travel
+    icon: tabler:zeppelin
+
+  - id: abbreviation
+    label: Call API
+    icon: text:API
+
+  - id: glyph
+    label: Ship order
+    icon: emoji:🚚
+```
+
+Direct names use Tabler by default. `concept:*` references provide a smaller AI-friendly vocabulary for ideas such as approval, review, security, payment, shipment, and deployment. Explicit `tabler:*` references are useful when a document should name its pack. Unknown names produce a close-match repair in the playground.
+
+The full catalog is optional for library consumers:
+
+```ts
+import { render } from '@traceflow/core'
+import { tablerIconPack } from '@traceflow/icons/tabler'
+
+const svg = render(layout, { theme, iconPacks: [tablerIconPack] })
+```
+
+All resolved icon geometry is embedded into the exported SVG. No font, CDN, API, or network request is required at viewing time. See [`packages/icons/THIRD_PARTY_NOTICES.md`](packages/icons/THIRD_PARTY_NOTICES.md) for attribution.
 
 ### Edges
 

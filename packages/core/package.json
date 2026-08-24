@@ -34,6 +34,7 @@
     "@traceflow/themes": "workspace:*"
   },
   "dependencies": {
+    "@traceflow/icons": "workspace:*",
     "@dagrejs/dagre": "^3.1.1",
     "yaml": "^2.9.0"
   },
